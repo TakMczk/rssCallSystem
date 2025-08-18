@@ -7,9 +7,9 @@ from typing import List, Optional, Any, Dict
 import httpx
 import re
 
-from models import Article, ScoreResult
-import config
-from logging_utils import get_logger
+from .models import Article, ScoreResult
+from . import config
+from .logging_utils import get_logger
 
 logger = get_logger(__name__)
 
