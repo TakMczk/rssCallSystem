@@ -22,7 +22,7 @@ def test_sort_ranked():
         make_article(25, 9, 8, 9, 3),
     ]
     sorted_ = sort_ranked(arts)
-    # Highest total first; tie broken by novelty, then expertise
-    assert sorted_[0].scores.expertise == 9
-    assert sorted_[1].scores.expertise == 8
-    assert sorted_[2].scores.novelty == 8
+    # Highest total first (25, 25, 20); tie broken by novelty (both 9), then expertise (9 > 8)
+    assert sorted_[0].scores.expertise == 9  # article 3: total=25, novelty=9, expertise=9
+    assert sorted_[1].scores.expertise == 7  # article 2: total=25, novelty=9, expertise=8
+    assert sorted_[2].scores.novelty == 8    # article 1: total=20, novelty=8
