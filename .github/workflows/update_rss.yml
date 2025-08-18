@@ -30,7 +30,10 @@ jobs:
       - name: Run pipeline
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          SITE_BASE_URL: ${{ vars.SITE_BASE_URL || 'https://example.com/' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_ORGANIZATION: ${{ secrets.OPENAI_ORGANIZATION }}
+          SITE_BASE_URL: https://takmczk.github.io/rssCallSystem/
+          USE_OPENAI: 'true'
           PYTHONPATH: .
         run: |
           python -m src.main
