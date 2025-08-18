@@ -1,0 +1,11 @@
+__pycache__/
+.pytest_cache/
+.cache/
+*.pyc
+dist/
+build/
+.venv/
+env/
+venv/
+*.log
+docs/rss.xml

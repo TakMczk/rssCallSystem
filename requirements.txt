@@ -1,0 +1,11 @@
+httpx
+feedparser
+pydantic
+python-dateutil
+bleach
+
+# dev
+yapf
+pytest
+ruff
+black

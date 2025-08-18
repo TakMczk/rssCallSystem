@@ -1,0 +1,39 @@
+name: Update Curated RSS
+
+on:
+  schedule:
+    - cron: '0 22,8 * * *'  # JST 07:00 / 17:00
+  workflow_dispatch:
+
+concurrency:
+  group: curated-rss
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install deps
+        run: |
+          pip install -r requirements.txt
+      - name: Run tests
+        run: |
+          pytest -q
+      - name: Run pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SITE_BASE_URL: ${{ vars.SITE_BASE_URL || 'https://example.com/' }}
+        run: |
+          python -m src.main
+      - name: Commit & Push RSS
+        run: |
+          git config user.name 'github-actions'
+          git config user.email 'actions@github.com'
+          if git diff --quiet docs/rss.xml; then echo 'No change'; else git add docs/rss.xml && git commit -m 'chore: update rss' || true; fi
+          git push || echo 'push skipped'

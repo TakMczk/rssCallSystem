@@ -1,0 +1,1 @@
+SYSTEM:\nあなたは技術記事評価アナリストです。必ず JSON のみで回答。\nUSER:\n以下の記事を評価してください。各指標は 0〜10 の整数。100文字以内で理由。\nタイトル: "{title}"\n概要: "{summary}"\n抜粋: "{excerpt}"\n出力 JSON: {"novelty":0-10,"interest":0-10,"expertise":0-10,"reason":"..."}\n
