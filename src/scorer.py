@@ -26,8 +26,8 @@ if CACHE_FILE.exists():
 
 _cache_lock = asyncio.Lock()
 
-PROMPT_TEMPLATE = r"""あなたは技術記事評価アナリストです。以下記事を3指標(新規性/興味深さ/専門性)で0-10整数評価し、理由を100文字以内で日本語。
-出力は必ず JSON 単体: {\"novelty\":int,\"interest\":int,\"expertise\":int,\"reason\":\"...\"}.
+PROMPT_TEMPLATE = """あなたは技術記事評価アナリストです。以下記事を3指標(新規性/興味深さ/専門性)で0-10整数評価し、理由を100文字以内で日本語。
+出力は必ず JSON 単体: {{"novelty":int,"interest":int,"expertise":int,"reason":"..."}}.
 タイトル: {title}
 概要: {summary}
 抜粋: {excerpt}
