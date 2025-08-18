@@ -1,11 +1,55 @@
+# Python
 __pycache__/
-.pytest_cache/
-.cache/
 *.pyc
-dist/
+*.pyo
+*.pyd
+.Python
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
 .venv/
 env/
 venv/
+ENV/
+
+# Testing
+.pytest_cache/
+.cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# Environment variables
+.env
+.env.local
+
+# Logs
 *.log
+
+# RSS files
 docs/rss.xml
+
+# Temporary files
+test_*.py
+quick_test.py
+temp_*.py
+
+# Cache
+cache/

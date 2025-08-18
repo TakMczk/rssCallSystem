@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Curated RSS Feed</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .rss-link {
+            display: inline-block;
+            background: #e74c3c;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .rss-link:hover {
+            background: #c0392b;
+        }
+        .description {
+            color: #7f8c8d;
+            margin-bottom: 25px;
+        }
+        .status {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .last-updated {
+            color: #95a5a6;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📰 Tech Curated RSS Feed</h1>
+        <p class="description">
+            最新の技術記事を自動収集し、AI（Gemini）による評価でランキング化したRSSフィードです。
+        </p>
+        
+        <a href="rss.xml" class="rss-link">📡 RSS フィードを購読</a>
+        
+        <div class="status">
+            <h3>📊 フィード情報</h3>
+            <ul>
+                <li>収集元: Qiita人気記事、Zenn、CodeZine</li>
+                <li>更新頻度: 1日2回（JST 07:00, 17:00）</li>
+                <li>記事数: トップ30記事</li>
+                <li>評価基準: 新規性、興味深さ、専門性の3軸</li>
+            </ul>
+        </div>
+
+        <div class="status">
+            <h3>🔧 システム状態</h3>
+            <p>✅ RSSフィード生成: 正常動作</p>
+            <p>⚡ AI評価システム: 稼働中（Rate limit対策実装済み）</p>
+            <p>🚀 自動デプロイ: GitHub Actions</p>
+        </div>
+
+        <p class="last-updated">
+            最終更新: <span id="lastUpdated">確認中...</span>
+        </p>
+    </div>
+
+    <script>
+        // RSS XML file の lastBuildDate を取得して表示
+        fetch('rss.xml')
+            .then(response => response.text())
+            .then(str => new window.DOMParser().parseFromString(str, "text/xml"))
+            .then(data => {
+                const lastBuildDate = data.querySelector("lastBuildDate");
+                if (lastBuildDate) {
+                    const date = new Date(lastBuildDate.textContent);
+                    document.getElementById('lastUpdated').textContent = date.toLocaleString('ja-JP', {
+                        timeZone: 'Asia/Tokyo',
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                }
+            })
+            .catch(err => {
+                document.getElementById('lastUpdated').textContent = '取得失敗';
+                console.error('RSS読み込みエラー:', err);
+            });
+    </script>
+</body>
+</html>
