@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
 from datetime import datetime, timezone
 from src.rss_builder import build_rss
 from src.models import RankedArticle, Article, ScoreResult
