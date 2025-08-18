@@ -2,8 +2,9 @@ httpx
 feedparser
 pydantic
 python-dateutil
-python-dotenv
 bleach
+python-dotenv
+openai
 
 # dev
 yapf

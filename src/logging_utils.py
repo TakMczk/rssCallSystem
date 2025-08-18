@@ -1,5 +1,5 @@
 import logging
-from . import config
+import config
 
 _DEF_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
 
