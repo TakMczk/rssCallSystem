@@ -1,57 +1,88 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Run Tests",
-      "type": "shell",
-      "command": "source .env && python -m pytest tests/ -v",
-      "group": "test",
-      "problemMatcher": ["$python"],
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": true,
-        "clear": false
-      }
-    },
-    {
-      "label": "Install Dependencies",
-      "type": "shell",
-      "command": "pip install -r requirements.txt",
-      "group": "build",
-      "problemMatcher": [],
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": true,
-        "clear": false
-      }
-    },
-    {
-      "label": "Run RSS System",
-      "type": "shell",
-      "command": "source .env && PYTHONPATH=. python -m src.main",
-      "group": "build",
-      "problemMatcher": ["$python"],
-      "presentation": {
-        "echo": true,
-        "reveal": "always",
-        "focus": false,
-        "panel": "shared",
-        "showReuseMessage": true,
-        "clear": false
-      }
-    },
-    {
-      "label": "Cleanup",
-      "type": "shell",
-      "command": "find . -name '*.pyc' -delete && find . -name '__pycache__' -type d -exec rm -rf {} +",
-      "group": "build",
-      "problemMatcher": []
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Tests",
+			"type": "shell",
+			"command": "source .env && python -m pytest tests/ -v",
+			"group": "test",
+			"problemMatcher": [
+				"$python"
+			],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": false
+			}
+		},
+		{
+			"label": "Install Dependencies",
+			"type": "shell",
+			"command": "pip install -r requirements.txt",
+			"group": "build",
+			"problemMatcher": [],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": false
+			}
+		},
+		{
+			"label": "Run RSS System",
+			"type": "shell",
+			"command": "source .env && PYTHONPATH=. python -m src.main",
+			"group": "build",
+			"problemMatcher": [
+				"$python"
+			],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": false
+			}
+		},
+		{
+			"label": "Cleanup",
+			"type": "shell",
+			"command": "find . -name '*.pyc' -delete && find . -name '__pycache__' -type d -exec rm -rf {} +",
+			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Test scorer fallback",
+			"type": "shell",
+			"command": "cd /Users/rucaye/Documents/Code/rssCallSystem && python -m pytest tests/test_scorer_fallback.py -v",
+			"problemMatcher": [
+				"$python"
+			],
+			"group": "test"
+		},
+		{
+			"label": "Run all tests",
+			"type": "shell",
+			"command": "cd /Users/rucaye/Documents/Code/rssCallSystem && python -m pytest tests/ -v",
+			"problemMatcher": [
+				"$python"
+			],
+			"group": "test"
+		},
+		{
+			"label": "Run pytest quietly",
+			"type": "shell",
+			"command": "cd /Users/rucaye/Documents/Code/rssCallSystem && python -m pytest -q",
+			"problemMatcher": [
+				"$python"
+			],
+			"group": "test"
+		}
+	]
 }
