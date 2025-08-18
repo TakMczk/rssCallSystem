@@ -1,20 +1,21 @@
 from __future__ import annotations
 from datetime import datetime
+from typing import Union, Optional
 from pydantic import BaseModel, HttpUrl
 
 class RawFeedItem(BaseModel):
     source: str
     title: str
-    link: str | HttpUrl
-    published: datetime | None = None
-    summary: str | None = None
-    content: str | None = None
+    link: Union[str, HttpUrl]
+    published: Optional[datetime] = None
+    summary: Optional[str] = None
+    content: Optional[str] = None
 
 class Article(BaseModel):
     id: str
     source: str
     title: str
-    url: str | HttpUrl
+    url: Union[str, HttpUrl]
     published_at: datetime
     summary: str
     excerpt: str

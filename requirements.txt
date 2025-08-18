@@ -2,6 +2,7 @@ httpx
 feedparser
 pydantic
 python-dateutil
+python-dotenv
 bleach
 
 # dev
