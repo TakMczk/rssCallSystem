@@ -5,6 +5,10 @@ on:
     - cron: '0 22,8 * * *'  # JST 07:00 / 17:00
   workflow_dispatch:
 
+# Grant GITHUB_TOKEN the necessary permissions
+permissions:
+  contents: write    # Allows git push to the repository
+
 concurrency:
   group: curated-rss
   cancel-in-progress: false
