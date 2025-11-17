@@ -21,14 +21,32 @@ class Article(BaseModel):
     excerpt: str
 
 class ScoreResult(BaseModel):
-    novelty: int
-    interest: int
-    expertise: int
+    # 技術面の評価（合計30点）
+    novelty: int  # 新規性 0-10
+    interest: int  # 興味深さ 0-10
+    expertise: int  # 専門性 0-10
+    
+    # 文化面の評価（合計30点）
+    cultural_relevance: int  # 文化的関連性 0-10
+    lifestyle_connection: int  # 生活との接点 0-10
+    creativity: int  # 創造性・芸術性 0-10
+    
     reason: str
 
     @property
     def total(self) -> int:
+        return (self.novelty + self.interest + self.expertise + 
+                self.cultural_relevance + self.lifestyle_connection + self.creativity)
+    
+    @property
+    def tech_score(self) -> int:
+        """技術面の合計スコア（0-30）"""
         return self.novelty + self.interest + self.expertise
+    
+    @property
+    def culture_score(self) -> int:
+        """文化面の合計スコア（0-30）"""
+        return self.cultural_relevance + self.lifestyle_connection + self.creativity
 
 class RankedArticle(Article):
     scores: ScoreResult

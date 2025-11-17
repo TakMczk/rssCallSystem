@@ -25,6 +25,9 @@ def test_scorer_fallback_no_key(monkeypatch):
         assert result.novelty == 5
         assert result.interest == 5
         assert result.expertise == 5
+        assert result.cultural_relevance == 5
+        assert result.lifestyle_connection == 5
+        assert result.creativity == 5
         assert "fallback" in result.reason
 
     asyncio.run(run())
