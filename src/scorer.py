@@ -26,15 +26,19 @@ _cache: dict[str, ScoreResult] = {}
 _cache_lock = asyncio.Lock()
 
 # Templates
-PROMPT_TEMPLATE = """あなたは技術記事評価アナリストです。以下記事を3指標(新規性/興味深さ/専門性)で0-10整数評価し、理由を100文字以内で日本語。
-出力は必ず JSON 単体: {{"novelty":int,"interest":int,"expertise":int,"reason":"..."}}.
+PROMPT_TEMPLATE = """あなたは「文化と技術の交差点」専門の記事評価アナリストです。以下記事を技術面3指標と文化面3指標で0-10整数評価。
+技術面: novelty(新規性), interest(興味深さ), expertise(専門性)
+文化面: cultural_relevance(文化的関連性), lifestyle_connection(生活との接点), creativity(創造性・芸術性)
+出力は必ず JSON 単体: {{"novelty":int,"interest":int,"expertise":int,"cultural_relevance":int,"lifestyle_connection":int,"creativity":int,"reason":"..."}}.
 タイトル: {title}
 概要: {summary}
 抜粋: {excerpt}
 """
 
-BATCH_PROMPT_TEMPLATE = """あなたは技術記事評価アナリストです。以下の複数の技術記事を3指標(新規性/興味深さ/専門性)で0-10整数評価してください。
-出力は必ずJSON配列形式: [{{"id":int,"novelty":int,"interest":int,"expertise":int,"reason":"理由(100文字以内)"}}, ...]
+BATCH_PROMPT_TEMPLATE = """あなたは「文化と技術の交差点」専門の記事評価アナリストです。以下の複数記事を技術面3指標と文化面3指標で0-10整数評価してください。
+技術面: novelty(新規性), interest(興味深さ), expertise(専門性)
+文化面: cultural_relevance(文化的関連性), lifestyle_connection(生活との接点), creativity(創造性・芸術性)
+出力は必ずJSON配列形式: [{{"id":int,"novelty":int,"interest":int,"expertise":int,"cultural_relevance":int,"lifestyle_connection":int,"creativity":int,"reason":"理由(100文字以内)"}}, ...]
 
 記事一覧:
 {articles}
@@ -51,17 +55,36 @@ if CACHE_FILE.exists():
 
 def _generate_heuristic_score(article: Article) -> ScoreResult:
     """Generate heuristic score based on article analysis"""
+    title_lower = article.title.lower()
     title_words = len(article.title.split())
-    has_code_keywords = any(keyword in article.title.lower() 
+    
+    # 技術面の評価
+    has_code_keywords = any(keyword in title_lower 
                           for keyword in ['api', 'python', 'javascript', 'react', 'ai', 'ml', 'database', 'docker', 'aws'])
-    has_advanced_keywords = any(keyword in article.title.lower() 
+    has_advanced_keywords = any(keyword in title_lower 
                               for keyword in ['architecture', 'optimization', 'performance', 'security', 'deployment'])
     
     novelty = 6 if has_advanced_keywords else 5 if has_code_keywords else 4
     interest = min(8, max(4, 4 + title_words // 3))
     expertise = 7 if has_advanced_keywords else 6 if has_code_keywords else 5
     
-    return ScoreResult(novelty=novelty, interest=interest, expertise=expertise, reason="fallback:heuristic_analysis")
+    # 文化面の評価
+    has_cultural_keywords = any(keyword in title_lower 
+                               for keyword in ['音楽', 'music', 'アート', 'art', '写真', 'photo', '健康', 'health', 'ウェルネス', 'wellness'])
+    has_lifestyle_keywords = any(keyword in title_lower 
+                                for keyword in ['生活', 'life', '日常', '季節', 'season', '効率', 'efficiency', '節約'])
+    has_creative_keywords = any(keyword in title_lower 
+                               for keyword in ['デザイン', 'design', 'クリエイティブ', 'creative', '表現'])
+    
+    cultural_relevance = 6 if has_cultural_keywords else 5
+    lifestyle_connection = 6 if has_lifestyle_keywords else 5
+    creativity = 6 if has_creative_keywords else 5
+    
+    return ScoreResult(
+        novelty=novelty, interest=interest, expertise=expertise,
+        cultural_relevance=cultural_relevance, lifestyle_connection=lifestyle_connection, creativity=creativity,
+        reason="fallback:heuristic_analysis"
+    )
 
 def _extract_json_from_text(text: str) -> Any:
     """Extract and parse JSON from API response text"""
@@ -92,7 +115,11 @@ async def score_article(article: Article) -> ScoreResult:
     # Fallback if no API key
     if not config.GEMINI_API_KEY:
         logger.info("GEMINI_API_KEY not set; using fallback for '%s'", article.title[:30])
-        score = ScoreResult(novelty=5, interest=5, expertise=5, reason="fallback:no_api_key")
+        score = ScoreResult(
+            novelty=5, interest=5, expertise=5,
+            cultural_relevance=5, lifestyle_connection=5, creativity=5,
+            reason="fallback:no_api_key"
+        )
         async with _cache_lock:
             _cache[key] = score
         return score
@@ -161,12 +188,19 @@ async def _score_with_retry(prompt: str, context: str, cache_key: str, is_batch:
                 novelty = int(data.get("novelty", 5))
                 interest = int(data.get("interest", 5))
                 expertise = int(data.get("expertise", 5))
+                cultural_relevance = int(data.get("cultural_relevance", 5))
+                lifestyle_connection = int(data.get("lifestyle_connection", 5))
+                creativity = int(data.get("creativity", 5))
                 
-                if not all(_validate_score(s) for s in [novelty, interest, expertise]):
+                if not all(_validate_score(s) for s in [novelty, interest, expertise, cultural_relevance, lifestyle_connection, creativity]):
                     raise ValueError("score out of range")
                     
                 reason = str(data.get("reason", ""))[:120]
-                return ScoreResult(novelty=novelty, interest=interest, expertise=expertise, reason=reason)
+                return ScoreResult(
+                    novelty=novelty, interest=interest, expertise=expertise,
+                    cultural_relevance=cultural_relevance, lifestyle_connection=lifestyle_connection, creativity=creativity,
+                    reason=reason
+                )
                 
         except Exception as e:
             logger.warning("Score error (%s) %s: %s", tries, context[:30], str(e)[:180])
@@ -186,7 +220,11 @@ async def score_articles_batch(articles: List[Article], batch_id: int = 0) -> Li
     """Score multiple articles in a single Gemini API call"""
     if not config.GEMINI_API_KEY:
         logger.info("GEMINI_API_KEY not set; using fallback for batch %d (%d articles)", batch_id, len(articles))
-        return [ScoreResult(novelty=5, interest=5, expertise=5, reason="fallback:no_api_key") for _ in articles]
+        return [ScoreResult(
+            novelty=5, interest=5, expertise=5,
+            cultural_relevance=5, lifestyle_connection=5, creativity=5,
+            reason="fallback:no_api_key"
+        ) for _ in articles]
     
     # Build batch prompt
     articles_text = ""
@@ -216,16 +254,27 @@ async def score_articles_batch(articles: List[Article], batch_id: int = 0) -> Li
                 novelty = int(article_result.get("novelty", 5))
                 interest = int(article_result.get("interest", 5))
                 expertise = int(article_result.get("expertise", 5))
+                cultural_relevance = int(article_result.get("cultural_relevance", 5))
+                lifestyle_connection = int(article_result.get("lifestyle_connection", 5))
+                creativity = int(article_result.get("creativity", 5))
                 reason = str(article_result.get("reason", ""))[:120]
                 
-                if all(_validate_score(s) for s in [novelty, interest, expertise]):
-                    results.append(ScoreResult(novelty=novelty, interest=interest, expertise=expertise, reason=reason))
+                if all(_validate_score(s) for s in [novelty, interest, expertise, cultural_relevance, lifestyle_connection, creativity]):
+                    results.append(ScoreResult(
+                        novelty=novelty, interest=interest, expertise=expertise,
+                        cultural_relevance=cultural_relevance, lifestyle_connection=lifestyle_connection, creativity=creativity,
+                        reason=reason
+                    ))
                 else:
                     results.append(_generate_heuristic_score(article))
             except (ValueError, TypeError):
                 results.append(_generate_heuristic_score(article))
         else:
-            results.append(ScoreResult(novelty=5, interest=5, expertise=5, reason="fallback:not_in_batch_response"))
+            results.append(ScoreResult(
+                novelty=5, interest=5, expertise=5,
+                cultural_relevance=5, lifestyle_connection=5, creativity=5,
+                reason="fallback:not_in_batch_response"
+            ))
     
     logger.info("Batch %d completed successfully: %d articles scored", batch_id, len(results))
     return results
@@ -236,7 +285,11 @@ async def score_articles_openai_batch(articles: List[Article], batch_id: int = 0
     if not HAS_OPENAI or not config.OPENAI_API_KEY:
         reason = "fallback:no_openai_library" if not HAS_OPENAI else "fallback:no_openai_key"
         logger.info("OpenAI unavailable; using fallback for batch %d (%d articles)", batch_id, len(articles))
-        return [ScoreResult(novelty=5, interest=5, expertise=5, reason=reason) for _ in articles]
+        return [ScoreResult(
+            novelty=5, interest=5, expertise=5,
+            cultural_relevance=5, lifestyle_connection=5, creativity=5,
+            reason=reason
+        ) for _ in articles]
     
     client = AsyncOpenAI(
         api_key=config.OPENAI_API_KEY,
@@ -294,16 +347,27 @@ async def score_articles_openai_batch(articles: List[Article], batch_id: int = 0
                         novelty = int(article_result.get("novelty", 5))
                         interest = int(article_result.get("interest", 5))
                         expertise = int(article_result.get("expertise", 5))
+                        cultural_relevance = int(article_result.get("cultural_relevance", 5))
+                        lifestyle_connection = int(article_result.get("lifestyle_connection", 5))
+                        creativity = int(article_result.get("creativity", 5))
                         reason = str(article_result.get("reason", ""))[:120]
                         
-                        if all(_validate_score(s) for s in [novelty, interest, expertise]):
-                            results.append(ScoreResult(novelty=novelty, interest=interest, expertise=expertise, reason=reason))
+                        if all(_validate_score(s) for s in [novelty, interest, expertise, cultural_relevance, lifestyle_connection, creativity]):
+                            results.append(ScoreResult(
+                                novelty=novelty, interest=interest, expertise=expertise,
+                                cultural_relevance=cultural_relevance, lifestyle_connection=lifestyle_connection, creativity=creativity,
+                                reason=reason
+                            ))
                         else:
                             results.append(_generate_heuristic_score(article))
                     except (ValueError, TypeError):
                         results.append(_generate_heuristic_score(article))
                 else:
-                    results.append(ScoreResult(novelty=5, interest=5, expertise=5, reason="fallback:not_in_openai_response"))
+                    results.append(ScoreResult(
+                        novelty=5, interest=5, expertise=5,
+                        cultural_relevance=5, lifestyle_connection=5, creativity=5,
+                        reason="fallback:not_in_openai_response"
+                    ))
             
             logger.info("OpenAI batch %d completed successfully: %d articles scored", batch_id, len(results))
             return results
