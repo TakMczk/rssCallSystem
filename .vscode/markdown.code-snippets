@@ -1,0 +1,131 @@
+{
+  "Code Block": {
+    "prefix": "code",
+    "body": [
+      "```${1:language}",
+      "${2:code}",
+      "```"
+    ],
+    "description": "コードブロックを挿入"
+  },
+  "Task List": {
+    "prefix": "task",
+    "body": [
+      "- [ ] ${1:タスク}"
+    ],
+    "description": "タスクリスト項目を挿入"
+  },
+  "Table": {
+    "prefix": "table",
+    "body": [
+      "| ${1:列1} | ${2:列2} | ${3:列3} |",
+      "| --- | --- | --- |",
+      "| ${4:データ1} | ${5:データ2} | ${6:データ3} |"
+    ],
+    "description": "テーブルを挿入"
+  },
+  "Link": {
+    "prefix": "link",
+    "body": [
+      "[${1:テキスト}](${2:URL})"
+    ],
+    "description": "リンクを挿入"
+  },
+  "Image": {
+    "prefix": "img",
+    "body": [
+      "![${1:altテキスト}](${2:画像パス})"
+    ],
+    "description": "画像を挿入"
+  },
+  "Alert Info": {
+    "prefix": "alert-info",
+    "body": [
+      "> [!NOTE]",
+      "> ${1:情報メッセージ}"
+    ],
+    "description": "情報アラートを挿入"
+  },
+  "Alert Warning": {
+    "prefix": "alert-warning",
+    "body": [
+      "> [!WARNING]",
+      "> ${1:警告メッセージ}"
+    ],
+    "description": "警告アラートを挿入"
+  },
+  "Alert Danger": {
+    "prefix": "alert-danger",
+    "body": [
+      "> [!IMPORTANT]",
+      "> ${1:重要メッセージ}"
+    ],
+    "description": "重要アラートを挿入"
+  },
+  "Collapsible Section": {
+    "prefix": "details",
+    "body": [
+      "<details>",
+      "<summary>${1:タイトル}</summary>",
+      "",
+      "${2:内容}",
+      "",
+      "</details>"
+    ],
+    "description": "折りたたみ可能なセクションを挿入"
+  },
+  "Frontmatter": {
+    "prefix": "frontmatter",
+    "body": [
+      "---",
+      "title: ${1:タイトル}",
+      "date: ${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}",
+      "author: ${2:著者名}",
+      "tags: [${3:タグ}]",
+      "---",
+      "",
+      "${4:内容}"
+    ],
+    "description": "Frontmatterを挿入"
+  },
+  "Mermaid Flowchart": {
+    "prefix": "mermaid-flow",
+    "body": [
+      "```mermaid",
+      "graph ${1|TD,LR,RL,BT|}",
+      "    A[${2:開始}] --> B[${3:処理}]",
+      "    B --> C[${4:終了}]",
+      "```"
+    ],
+    "description": "Mermaidフローチャートを挿入"
+  },
+  "Mermaid Sequence": {
+    "prefix": "mermaid-seq",
+    "body": [
+      "```mermaid",
+      "sequenceDiagram",
+      "    participant ${1:A}",
+      "    participant ${2:B}",
+      "    ${1:A}->>${2:B}: ${3:メッセージ}",
+      "    ${2:B}-->>${1:A}: ${4:応答}",
+      "```"
+    ],
+    "description": "Mermaidシーケンス図を挿入"
+  },
+  "Horizontal Rule": {
+    "prefix": "hr",
+    "body": [
+      "---"
+    ],
+    "description": "水平線を挿入"
+  },
+  "Footnote": {
+    "prefix": "footnote",
+    "body": [
+      "${1:テキスト}[^${2:1}]",
+      "",
+      "[^${2:1}]: ${3:脚注の内容}"
+    ],
+    "description": "脚注を挿入"
+  }
+}
