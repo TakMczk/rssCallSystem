@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 from src.models import Article, ScoreResult, RankedArticle
 from src.ranking import sort_ranked
 
-def make_article(total, novelty, expertise, interest, idx):
+def make_article(total, novelty, expertise, interest, idx, cultural_relevance=5, lifestyle_connection=5, creativity=5):
     a = Article(
         id=str(idx),
         source="x",
@@ -16,7 +16,11 @@ def make_article(total, novelty, expertise, interest, idx):
         summary="s",
         excerpt="e",
     )
-    score = ScoreResult(novelty=novelty, interest=interest, expertise=expertise, reason="r")
+    score = ScoreResult(
+        novelty=novelty, interest=interest, expertise=expertise,
+        cultural_relevance=cultural_relevance, lifestyle_connection=lifestyle_connection, creativity=creativity,
+        reason="r"
+    )
     return RankedArticle(**a.model_dump(), scores=score)
 
 def test_sort_ranked():

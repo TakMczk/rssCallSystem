@@ -10,8 +10,13 @@ FEED_URLS: List[str] = [
     "https://zenn.dev/feed",
     "https://codezine.jp/rss/new/20/index.xml",
     "https://qiita.com/popular-items/feed",
+    "https://www.publickey1.jp/atom.xml",
+    "https://www.udiscovermusic.jp/feed",
+    "https://www.technologyreview.jp/feed/",
+    "http://feed.japan.zdnet.com/rss/index.rdf",
+    "https://wirelesswire.jp/feed/",
 ]
-TOP_N: int = 30
+TOP_N: int = 15
 REQUEST_TIMEOUT: float = 15.0
 FETCH_CONCURRENCY: int = 5
 SCORE_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
@@ -31,5 +36,6 @@ RATE_LIMIT_DELAY: float = 2.0  # Base delay for rate limit handling
 BATCH_SIZE: int = int(os.getenv("BATCH_SIZE", "10"))  # Number of articles per batch
 USE_BATCH_SCORING: bool = os.getenv("USE_BATCH_SCORING", "true").lower() == "true"
 SITE_BASE_URL: str = os.getenv("SITE_BASE_URL", "https://example.com/")
+TIME_WINDOW_HOURS: int = int(os.getenv("TIME_WINDOW_HOURS", "12"))  # Only fetch articles from the last N hours
 
 os.makedirs(CACHE_DIR, exist_ok=True)
