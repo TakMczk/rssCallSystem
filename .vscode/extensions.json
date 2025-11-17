@@ -1,0 +1,19 @@
+{
+  "recommendations": [
+    // Markdown編集に必須
+    "yzhang.markdown-all-in-one",
+    "DavidAnson.vscode-markdownlint",
+    "bierner.markdown-mermaid",
+    "mushan.vscode-paste-image",
+    
+    // Python開発に便利
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    
+    // Git管理に便利
+    "mhutchie.git-graph",
+    
+    // その他の便利なツール
+    "oderwat.indent-rainbow"
+  ]
+}
