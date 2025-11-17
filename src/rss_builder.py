@@ -20,7 +20,7 @@ def build_rss(articles: list[RankedArticle]) -> str:
     item_xml: list[str] = []
     for a in articles:
         pub = format_datetime(a.published_at.replace(tzinfo=timezone.utc))
-        desc = escape(f"{a.summary}\nScore: {a.total} (N={a.scores.novelty}/I={a.scores.interest}/E={a.scores.expertise})\nReason: {a.scores.reason}\nExcerpt: {a.excerpt}")
+        desc = escape(f"{a.summary}\nScore: {a.total} (Tech: N={a.scores.novelty}/I={a.scores.interest}/E={a.scores.expertise}, Culture: C={a.scores.cultural_relevance}/L={a.scores.lifestyle_connection}/Cr={a.scores.creativity})\nReason: {a.scores.reason}\nExcerpt: {a.excerpt}")
         item_parts = [
             "<item>",
             f"<title>{escape(a.title)}</title>",
