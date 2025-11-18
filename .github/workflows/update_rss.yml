@@ -2,7 +2,7 @@ name: Update Curated RSS
 
 on:
   schedule:
-    - cron: '0 22,8 * * *'  # JST 07:00 / 17:00
+    - cron: '0 22 * * *'  # JST 07:00
   workflow_dispatch:
 
 # Grant GITHUB_TOKEN the necessary permissions
