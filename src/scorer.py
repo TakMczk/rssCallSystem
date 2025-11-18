@@ -26,17 +26,17 @@ _cache: dict[str, ScoreResult] = {}
 _cache_lock = asyncio.Lock()
 
 # Templates
-PROMPT_TEMPLATE = """あなたは「文化と技術の交差点」専門の記事評価アナリストです。以下記事を技術面3指標と文化面3指標で0-10整数評価。
-技術面: novelty(新規性), interest(興味深さ), expertise(専門性)
+PROMPT_TEMPLATE = """あなたは「文化と技術の交差点」専門の記事評価アナリストです。以下記事を技術面3指標(各0-10点、合計40点相当)と文化面3指標(各0-10点、合計20点相当)で0-10整数評価。
+技術面(重視): novelty(新規性), interest(興味深さ), expertise(専門性)
 文化面: cultural_relevance(文化的関連性), lifestyle_connection(生活との接点), creativity(創造性・芸術性)
-出力は必ず JSON 単体: {{"novelty":int,"interest":int,"expertise":int,"cultural_relevance":int,"lifestyle_connection":int,"creativity":int,"reason":"..."}}.
+出力は必ず JSON 単体: {{"novelty":int,"interest":int,"expertise":int,"cultural_relevance":int,"lifestyle_connection":int,"creativity":int,"reason":"..."}}}.
 タイトル: {title}
 概要: {summary}
 抜粋: {excerpt}
 """
 
-BATCH_PROMPT_TEMPLATE = """あなたは「文化と技術の交差点」専門の記事評価アナリストです。以下の複数記事を技術面3指標と文化面3指標で0-10整数評価してください。
-技術面: novelty(新規性), interest(興味深さ), expertise(専門性)
+BATCH_PROMPT_TEMPLATE = """あなたは「文化と技術の交差点」専門の記事評価アナリストです。以下の複数記事を技術面3指標(各0-10点、合計40点相当)と文化面3指標(各0-10点、合計20点相当)で0-10整数評価してください。
+技術面(重視): novelty(新規性), interest(興味深さ), expertise(専門性)
 文化面: cultural_relevance(文化的関連性), lifestyle_connection(生活との接点), creativity(創造性・芸術性)
 出力は必ずJSON配列形式: [{{"id":int,"novelty":int,"interest":int,"expertise":int,"cultural_relevance":int,"lifestyle_connection":int,"creativity":int,"reason":"理由(100文字以内)"}}, ...]
 
