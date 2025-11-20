@@ -32,12 +32,12 @@ def build_rss(articles: list[RankedArticle]) -> str:
         original_date_str = a.published_at.strftime('%Y-%m-%d %H:%M')
         
         desc_text = (
-            f"{a.summary}\n"
-            f"Reason: {a.scores.reason}\n"
-            f"Excerpt: {a.excerpt}\n"
-            f"Original PubDate: {original_date_str}\n"
+            f"{a.summary}\n\n"
+            f"Reason: {a.scores.reason}\n\n"
             f"Score: {a.total} (Tech: N={a.scores.novelty}/I={a.scores.interest}/E={a.scores.expertise}, "
-            f"Culture: C={a.scores.cultural_relevance}/L={a.scores.lifestyle_connection}/Cr={a.scores.creativity})"
+            f"Culture: C={a.scores.cultural_relevance}/L={a.scores.lifestyle_connection}/Cr={a.scores.creativity})\n"
+            f"Excerpt: {a.excerpt}\n"
+            f"Original PubDate: {original_date_str}"
         )
         desc = escape(desc_text)
         
