@@ -31,15 +31,21 @@ def build_rss(articles: list[RankedArticle]) -> str:
         # Include original publication date in description
         original_date_str = a.published_at.strftime('%Y-%m-%d %H:%M')
         
-        desc_text = (
-            f"{a.summary}\n\n"
-            f"Reason: {a.scores.reason}\n\n"
-            f"Score: {a.total} (Tech: N={a.scores.novelty}/I={a.scores.interest}/E={a.scores.expertise}, "
-            f"Culture: C={a.scores.cultural_relevance}/L={a.scores.lifestyle_connection}/Cr={a.scores.creativity})\n"
-            f"Excerpt: {a.excerpt}\n"
-            f"Original PubDate: {original_date_str}"
+        # Use HTML for description to ensure proper formatting in RSS readers
+        summary_html = f"<p>{escape(a.summary)}</p>" if a.summary else ""
+        reason_html = f"<p><strong>Reason:</strong> {escape(a.scores.reason)}</p>"
+        
+        score_detail = (
+            f"Tech: N={a.scores.novelty}/I={a.scores.interest}/E={a.scores.expertise}, "
+            f"Culture: C={a.scores.cultural_relevance}/L={a.scores.lifestyle_connection}/Cr={a.scores.creativity}"
         )
-        desc = escape(desc_text)
+        score_html = f"<p><strong>Score: {a.total}</strong> <small>({score_detail})</small></p>"
+        
+        excerpt_html = f"<p><strong>Excerpt:</strong> {escape(a.excerpt)}</p>" if a.excerpt else ""
+        original_date_html = f"<p><small>Original PubDate: {original_date_str}</small></p>"
+
+        # Combine into a CDATA block for the description
+        description_content = f"{summary_html}{reason_html}{score_html}{excerpt_html}{original_date_html}"
         
         item_parts = [
             "<item>",
@@ -47,7 +53,7 @@ def build_rss(articles: list[RankedArticle]) -> str:
             f"<link>{escape(str(a.url))}</link>",
             f"<guid isPermaLink=\"false\">{escape(a.id)}</guid>",
             f"<pubDate>{pub}</pubDate>",
-            f"<description>{desc}</description>",
+            f"<description><![CDATA[{description_content}]]></description>",
             f"<category>Score:{a.total}</category>",
             "</item>",
         ]
