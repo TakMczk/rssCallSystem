@@ -33,11 +33,11 @@ def build_rss(articles: list[RankedArticle]) -> str:
         
         desc_text = (
             f"{a.summary}\n"
-            f"Score: {a.total} (Tech: N={a.scores.novelty}/I={a.scores.interest}/E={a.scores.expertise}, "
-            f"Culture: C={a.scores.cultural_relevance}/L={a.scores.lifestyle_connection}/Cr={a.scores.creativity})\n"
             f"Reason: {a.scores.reason}\n"
             f"Excerpt: {a.excerpt}\n"
-            f"Original PubDate: {original_date_str}"
+            f"Original PubDate: {original_date_str}\n"
+            f"Score: {a.total} (Tech: N={a.scores.novelty}/I={a.scores.interest}/E={a.scores.expertise}, "
+            f"Culture: C={a.scores.cultural_relevance}/L={a.scores.lifestyle_connection}/Cr={a.scores.creativity})"
         )
         desc = escape(desc_text)
         

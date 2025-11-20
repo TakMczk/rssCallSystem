@@ -1,61 +1,61 @@
-<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Tech Curated Top 30</title><link>https://takmczk.github.io/rssCallSystem/</link><description>Ranked top technical articles</description><lastBuildDate>Thu, 20 Nov 2025 13:50:00 +0000</lastBuildDate><language>ja</language><item><title>[#1 Score:44] AIエディタ「Google Antigravity」は、Googleが3600億円で買収した元Windsurfチームが開発。開発者はエージェントのマネージャになる</title><link>https://www.publickey1.jp/blog/25/aigoogle_antigravitygoogle3600windsurf.html</link><guid isPermaLink="false">898e466feda80aa8</guid><pubDate>Thu, 20 Nov 2025 13:49:00 +0000</pubDate><description>GoogleはAIエージェントファーストな統合開発環境（IDE）として「Google Antigravity」（以下、Antigravity）をパブリックプレビューとして公開しました。 Meet Google Antigravity, yo...
-Score: 44 (Tech: N=9/I=8/E=8, Culture: C=5/L=4/Cr=7)
-Reason: AIエディタの開発背景に関する情報は新規性が高く、技術的に興味深いが文化的関連性は薄い。
-Excerpt: GoogleはAIエージェントファーストな統合開発環境（IDE）として「Google Antigravity」（以下、Antigravity）をパブリックプレビューとして公開しました。 Meet Google Antigravity, yo...
-Original PubDate: 2025-11-19 15:44</description><category>Score:44</category></item><item><title>[#2 Score:44] Google、学術研究に特化したAIツール「Scholar Labs」を限定公開</title><link>http://codezine.jp/article/detail/22635</link><guid isPermaLink="false">0d0df9a128af86df</guid><pubDate>Thu, 20 Nov 2025 13:48:00 +0000</pubDate><description>
-Score: 44 (Tech: N=9/I=8/E=7, Culture: C=6/L=5/Cr=7)
-Reason: 学術研究向けのAIツールは新規性が高く、興味深いが、生活との接点はやや弱い。
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><title>Tech Curated Top 30</title><link>https://example.com/</link><description>Ranked top technical articles</description><lastBuildDate>Thu, 20 Nov 2025 13:58:41 +0000</lastBuildDate><language>ja</language><item><title>[#1 Score:31] AWS CLIの認証が簡素化、「aws login」コマンドで認証情報をブラウザ取得</title><link>http://codezine.jp/article/detail/22636</link><guid isPermaLink="false">de09381da1ac9084</guid><pubDate>Thu, 20 Nov 2025 13:57:41 +0000</pubDate><description>
+Reason: fallback:heuristic_analysis
 Excerpt: 
-Original PubDate: 2025-11-20 01:00</description><category>Score:44</category></item><item><title>[#3 Score:44] 「自分で調べる」患者が激増 医療従事者6人が語った 新型コロナ後の変化</title><link>https://www.technologyreview.jp/s/372057/how-conspiracy-theories-infiltrated-the-doctors-office/</link><guid isPermaLink="false">e2e0c1e01d57dd59</guid><pubDate>Thu, 20 Nov 2025 13:47:00 +0000</pubDate><description>ネットで「自分で調べた」患者がワクチンや治療を拒否——新型コロナ後、医療現場で何が起きているのか。医師や心理学者ら6人が、誤情報や陰謀論と向き合い、患者との信頼関係を再構築する試みを語った。
-Score: 44 (Tech: N=6/I=8/E=7, Culture: C=9/L=8/Cr=7)
-Reason: 医療と情報の関係を探る内容は文化的に重要で、興味深い視点を提供。
-Excerpt: ネットで「自分で調べた」患者がワクチンや治療を拒否——新型コロナ後、医療現場で何が起きているのか。医師や心理学者ら6人が、誤情報や陰謀論と向き合い、患者との信頼関係を再構築する試みを語った。
-Original PubDate: 2025-11-19 21:38</description><category>Score:44</category></item><item><title>[#4 Score:43] 【保存版】Google Antigravity 完全攻略ガイド｜次世代 "エージェント型" IDEのすべてを使い倒すチートシート</title><link>https://qiita.com/akira_papa_AI/items/0acf2679e4ce9f7fb153?utm_campaign=popular_items&amp;utm_medium=feed&amp;utm_source=popular_items</link><guid isPermaLink="false">267a9a7ee5dfad1c</guid><pubDate>Thu, 20 Nov 2025 13:46:00 +0000</pubDate><description>はじめに Google Antigravityがリリースされました。 「Cursor, Windsurf...またAI搭載エディタか」って思いませんでした？ 僕も最初そう思ってたんです。 でもね、ドキュメント読み込んでいくうちに、ちょっと考えが変わりました。 Googl...
-Score: 43 (Tech: N=8/I=8/E=9, Culture: C=5/L=4/Cr=6)
-Reason: 新しいIDEに関する詳細なガイドで、技術的な新規性と専門性が高いが、文化的関連性は低い。
-Excerpt: はじめに Google Antigravityがリリースされました。 「Cursor, Windsurf...またAI搭載エディタか」って思いませんでした？ 僕も最初そう思ってたんです。 でもね、ドキュメント読み込んでいくうちに、ちょっと考えが変わりました。 Googl...
-Original PubDate: 2025-11-20 01:34</description><category>Score:43</category></item><item><title>[#5 Score:43] OpenAIが「GPT-5.1-Codex-Max」を発表、テストではデバッグ・実装を24時間継続</title><link>http://codezine.jp/article/detail/22637</link><guid isPermaLink="false">432b7ed219e90455</guid><pubDate>Thu, 20 Nov 2025 13:45:00 +0000</pubDate><description>
-Score: 43 (Tech: N=8/I=9/E=8, Culture: C=5/L=4/Cr=6)
-Reason: 新しいAIモデルの発表は技術的に革新性が高く、興味深いが、文化的関連性は薄い。
+Original PubDate: 2025-11-20 02:20
+Score: 31 (Tech: N=5/I=5/E=6, Culture: C=5/L=5/Cr=5)</description><category>Score:31</category></item><item><title>[#2 Score:31] なぜ React 哲学を守らないといけないのか？</title><link>https://zenn.dev/kkeeth/articles/why-learning-react-philosophy</link><guid isPermaLink="false">895ffec53b2729b1</guid><pubDate>Thu, 20 Nov 2025 13:56:41 +0000</pubDate><description>こんにちは．年々病気に弱くなってきて体力の低下と年齡を感じる今日このごろです． Keeth こと桑原です． 毎日お世話になっている 𝕏 で以下のポストを見かけました． https://x.com/le_panda_noir/status/1962638427628937481 こちらの投稿を見たとき「これは読みたい！」と思ったのですが，しっかりリプライで 書きたいってか、こういう感じのを誰か書いて使わせてくれ とあったので笑いました（笑）ただ，自分なりにこれは整理してみたくなったので，色々調べつつ自分なりに思うところを書いてみます．むっちゃ遅くなってしもた． ※あまり思想については強...
+Reason: fallback:heuristic_analysis
+Excerpt: こんにちは．年々病気に弱くなってきて体力の低下と年齡を感じる今日このごろです． Keeth こと桑原です． 毎日お世話になっている 𝕏 で以下のポストを見かけました． https://x.com/le_panda_noir/status/1962638427628937481 こちらの投稿を見たとき「これは読みたい！」と思ったのですが，しっかりリプライで …
+Original PubDate: 2025-11-19 14:20
+Score: 31 (Tech: N=5/I=5/E=6, Culture: C=5/L=5/Cr=5)</description><category>Score:31</category></item><item><title>[#3 Score:30] AWS Lambdaでテナントまたはエンドユーザー単位の実行環境分離が可能に</title><link>http://codezine.jp/article/detail/22639</link><guid isPermaLink="false">b595c3f35e6f761c</guid><pubDate>Thu, 20 Nov 2025 13:55:41 +0000</pubDate><description>
+Reason: fallback:heuristic_analysis
 Excerpt: 
-Original PubDate: 2025-11-20 02:35</description><category>Score:43</category></item><item><title>[#6 Score:43] 【PythonとSQLiteで学ぶ「データの書き込み方法」】Web掲示板にコメント機能を実装しよう！</title><link>http://codezine.jp/article/detail/22090</link><guid isPermaLink="false">075cb008a318b720</guid><pubDate>Thu, 20 Nov 2025 13:44:00 +0000</pubDate><description>本連載では、ベジェ曲線でお絵描きするWebアプリを使って、描いた絵を公開できる掲示板を開発しながら、Pythonを使ったバックエンド開発について学んでいきます。連載第7回は、PythonでSQLite3のデータベースを使った「一筆書きBBS」のWebサイトの「コメント」ページの作成方法を解説します。
-Score: 43 (Tech: N=7/I=8/E=6, Culture: C=7/L=8/Cr=7)
-Reason: 教育的な内容で、実践的なアプローチが魅力的。生活との接点も強い。
+Original PubDate: 2025-11-20 08:00
+Score: 30 (Tech: N=5/I=4/E=6, Culture: C=5/L=5/Cr=5)</description><category>Score:30</category></item><item><title>[#4 Score:30] OpenAIが「GPT-5.1-Codex-Max」を発表、テストではデバッグ・実装を24時間継続</title><link>http://codezine.jp/article/detail/22637</link><guid isPermaLink="false">432b7ed219e90455</guid><pubDate>Thu, 20 Nov 2025 13:54:41 +0000</pubDate><description>
+Reason: fallback:heuristic_analysis
+Excerpt: 
+Original PubDate: 2025-11-20 02:35
+Score: 30 (Tech: N=5/I=4/E=6, Culture: C=5/L=5/Cr=5)</description><category>Score:30</category></item><item><title>[#5 Score:30] 【PythonとSQLiteで学ぶ「データの書き込み方法」】Web掲示板にコメント機能を実装しよう！</title><link>http://codezine.jp/article/detail/22090</link><guid isPermaLink="false">075cb008a318b720</guid><pubDate>Thu, 20 Nov 2025 13:53:41 +0000</pubDate><description>本連載では、ベジェ曲線でお絵描きするWebアプリを使って、描いた絵を公開できる掲示板を開発しながら、Pythonを使ったバックエンド開発について学んでいきます。連載第7回は、PythonでSQLite3のデータベースを使った「一筆書きBBS」のWebサイトの「コメント」ページの作成方法を解説します。
+Reason: fallback:heuristic_analysis
 Excerpt: 本連載では、ベジェ曲線でお絵描きするWebアプリを使って、描いた絵を公開できる掲示板を開発しながら、Pythonを使ったバックエンド開発について学んでいきます。連載第7回は、PythonでSQLite3のデータベースを使った「一筆書きBBS」のWebサイトの「コメント」ページの作成方法を解説します。
-Original PubDate: 2025-11-20 02:00</description><category>Score:43</category></item><item><title>[#7 Score:41] OpenTelemetryによるz/OS上でのCICSトランザクションのトレーシング</title><link>https://qiita.com/gomachoco/items/d872ef3a1fb590b62155?utm_campaign=popular_items&amp;utm_medium=feed&amp;utm_source=popular_items</link><guid isPermaLink="false">ea4ef3936908829e</guid><pubDate>Thu, 20 Nov 2025 13:43:00 +0000</pubDate><description>はじめに 2026年9月に出荷開始されたCICS Transaction Server for z/OS V6.3では新機能としてOpenTelemetryのサポートが追加されています。当記事ではこのOpenTelemetryサポートでどのようにCICSの処理が観測できる...
-Score: 41 (Tech: N=8/I=7/E=8, Culture: C=5/L=4/Cr=6)
-Reason: OpenTelemetryの新機能に関する詳細な解説は技術的に興味深いが、文化的関連性は薄い。
-Excerpt: はじめに 2026年9月に出荷開始されたCICS Transaction Server for z/OS V6.3では新機能としてOpenTelemetryのサポートが追加されています。当記事ではこのOpenTelemetryサポートでどのようにCICSの処理が観測できる...
-Original PubDate: 2025-11-20 00:32</description><category>Score:41</category></item><item><title>[#8 Score:41] 量子技術でDeepSeekを55%小型化、「検閲解除」にも成功</title><link>https://www.technologyreview.jp/s/372724/quantum-physicists-have-shrunk-and-de-censored-deepseek-r1/</link><guid isPermaLink="false">a5c1fe372f300942</guid><pubDate>Thu, 20 Nov 2025 13:42:00 +0000</pubDate><description>量子技術を専門とするスペイン企業が、「DeepSeek（ディープシーク）R1」を55%小型化し、検閲機能を除去したと発表。天安門事件などの敏感な話題への回答制限を削除したという。
-Score: 41 (Tech: N=8/I=7/E=7, Culture: C=6/L=5/Cr=6)
-Reason: 量子技術の進展と検閲解除は新規性が高く、文化的にも重要なテーマ。
-Excerpt: 量子技術を専門とするスペイン企業が、「DeepSeek（ディープシーク）R1」を55%小型化し、検閲機能を除去したと発表。天安門事件などの敏感な話題への回答制限を削除したという。
-Original PubDate: 2025-11-19 21:59</description><category>Score:41</category></item><item><title>[#9 Score:41] 宮崎駿が抱え続ける矛盾。自然への思いと、アニメ制作という仕事</title><link>https://wirelesswire.jp/2025/11/91803/</link><guid isPermaLink="false">bccfdbd312023187</guid><pubDate>Thu, 20 Nov 2025 13:41:00 +0000</pubDate><description>「自然を守る」というスローガンは嫌になる 宮崎駿の映画作品のテーマの一つが「人と自然の共生」であることは広く知られている。人間の産業社会の発展とともに、豊かな自然やそこに住まう精霊や神々が滅んでいったことが、繰り返し彼の […]
-Score: 41 (Tech: N=6/I=7/E=5, Culture: C=9/L=8/Cr=9)
-Reason: 宮崎駿のテーマは文化的に深い関連性があり、創造性も高い。
-Excerpt: 「自然を守る」というスローガンは嫌になる 宮崎駿の映画作品のテーマの一つが「人と自然の共生」であることは広く知られている。人間の産業社会の発展とともに、豊かな自然やそこに住まう精霊や神々が滅んでいったことが、繰り返し彼の […]
-Original PubDate: 2025-11-19 21:00</description><category>Score:41</category></item><item><title>[#10 Score:40] 「純全帯幺九（ジュンチャン）、難易度の割に安すぎないか？」という麻雀の疑問をGemini 3に聞いてみた。</title><link>https://qiita.com/inukai-masanori/items/29b3aa79f33858845685?utm_campaign=popular_items&amp;utm_medium=feed&amp;utm_source=popular_items</link><guid isPermaLink="false">0bc3ce0630c1bb55</guid><pubDate>Thu, 20 Nov 2025 13:40:00 +0000</pubDate><description>はじめに 麻雀打ちなら一度は思ったことがあるはずです。 「純全帯幺九（ジュンチャン）、難易度の割に安すぎないか？」 と。 苦労して作ったジュンチャン（3翻）と、破壊力抜群のチンイツ（6翻）。 体感では「絶対にジュンチャンの方が難しい」と感じていましたが、果たして本当なのか...
-Score: 40 (Tech: N=7/I=8/E=6, Culture: C=6/L=5/Cr=7)
-Reason: 麻雀に関する疑問をAIに尋ねるという新しいアプローチが興味深く、文化的関連性も高い。
-Excerpt: はじめに 麻雀打ちなら一度は思ったことがあるはずです。 「純全帯幺九（ジュンチャン）、難易度の割に安すぎないか？」 と。 苦労して作ったジュンチャン（3翻）と、破壊力抜群のチンイツ（6翻）。 体感では「絶対にジュンチャンの方が難しい」と感じていましたが、果たして本当なのか...
-Original PubDate: 2025-11-20 00:13</description><category>Score:40</category></item><item><title>[#11 Score:39] “見えてるけど見えてない”メモリリークの実体と 5 分で防ぐテクニック</title><link>https://qiita.com/K3n_to_n17/items/cbd8f1022c37371d6e52?utm_campaign=popular_items&amp;utm_medium=feed&amp;utm_source=popular_items</link><guid isPermaLink="false">67fe4dd1d05082ec</guid><pubDate>Thu, 20 Nov 2025 13:39:00 +0000</pubDate><description>はじめに 現場で「なんだかメモリが増えている気がする」「GC（ガベージコレクション）があるから大丈夫だと思ったら落ちた…」「原因がよく分からないままサービス再起動してごまかしている」という経験はありませんか？ 本記事では、そんな“見えてるけど見えていない”存在、つまり 「...
-Score: 39 (Tech: N=7/I=7/E=8, Culture: C=5/L=4/Cr=5)
-Reason: メモリリークに関する実用的なテクニックは興味深いが、文化的な側面は薄い。
+Original PubDate: 2025-11-20 02:00
+Score: 30 (Tech: N=5/I=4/E=6, Culture: C=5/L=5/Cr=5)</description><category>Score:30</category></item><item><title>[#6 Score:30] Google、学術研究に特化したAIツール「Scholar Labs」を限定公開</title><link>http://codezine.jp/article/detail/22635</link><guid isPermaLink="false">0d0df9a128af86df</guid><pubDate>Thu, 20 Nov 2025 13:52:41 +0000</pubDate><description>
+Reason: fallback:heuristic_analysis
+Excerpt: 
+Original PubDate: 2025-11-20 01:00
+Score: 30 (Tech: N=5/I=4/E=6, Culture: C=5/L=5/Cr=5)</description><category>Score:30</category></item><item><title>[#7 Score:30] AIエディタ「Google Antigravity」は、Googleが3600億円で買収した元Windsurfチームが開発。開発者はエージェントのマネージャになる</title><link>https://www.publickey1.jp/blog/25/aigoogle_antigravitygoogle3600windsurf.html</link><guid isPermaLink="false">898e466feda80aa8</guid><pubDate>Thu, 20 Nov 2025 13:51:41 +0000</pubDate><description>GoogleはAIエージェントファーストな統合開発環境（IDE）として「Google Antigravity」（以下、Antigravity）をパブリックプレビューとして公開しました。 Meet Google Antigravity, yo...
+Reason: fallback:heuristic_analysis
+Excerpt: GoogleはAIエージェントファーストな統合開発環境（IDE）として「Google Antigravity」（以下、Antigravity）をパブリックプレビューとして公開しました。 Meet Google Antigravity, yo...
+Original PubDate: 2025-11-19 15:44
+Score: 30 (Tech: N=5/I=4/E=6, Culture: C=5/L=5/Cr=5)</description><category>Score:30</category></item><item><title>[#8 Score:30] SQL の比較演算子 "&lt;&gt;" と "!=" の違いについて</title><link>https://qiita.com/P-SiZK/items/de8f9eebc2148626f5c3?utm_campaign=popular_items&amp;utm_medium=feed&amp;utm_source=popular_items</link><guid isPermaLink="false">53e7bf5862bc617a</guid><pubDate>Thu, 20 Nov 2025 13:50:41 +0000</pubDate><description>はじめに SQL で一致しないというのを表すとき、どのような文を書くでしょうか？ 私は &lt;&gt; を主に使って書くのですが、!= を使う人を見かけ、違いが気になったので少し調べてみました。 各 RDBMS の不等価演算子について まずは身近な RDBMS のドキュメントを見...
+Reason: fallback:heuristic_analysis
+Excerpt: はじめに SQL で一致しないというのを表すとき、どのような文を書くでしょうか？ 私は &lt;&gt; を主に使って書くのですが、!= を使う人を見かけ、違いが気になったので少し調べてみました。 各 RDBMS の不等価演算子について まずは身近な RDBMS のドキュメントを見...
+Original PubDate: 2025-11-20 03:26
+Score: 30 (Tech: N=4/I=6/E=5, Culture: C=5/L=5/Cr=5)</description><category>Score:30</category></item><item><title>[#9 Score:29] GoogleがJulesにGemini 3 Proを導入、その他にもWindows対応など実施</title><link>http://codezine.jp/article/detail/22641</link><guid isPermaLink="false">12637d2ed2a4af05</guid><pubDate>Thu, 20 Nov 2025 13:49:41 +0000</pubDate><description>
+Reason: fallback:heuristic_analysis
+Excerpt: 
+Original PubDate: 2025-11-20 10:00
+Score: 29 (Tech: N=4/I=5/E=5, Culture: C=5/L=5/Cr=5)</description><category>Score:29</category></item><item><title>[#10 Score:29] 【保存版】Google Antigravity 完全攻略ガイド｜次世代 "エージェント型" IDEのすべてを使い倒すチートシート</title><link>https://qiita.com/akira_papa_AI/items/0acf2679e4ce9f7fb153?utm_campaign=popular_items&amp;utm_medium=feed&amp;utm_source=popular_items</link><guid isPermaLink="false">267a9a7ee5dfad1c</guid><pubDate>Thu, 20 Nov 2025 13:48:41 +0000</pubDate><description>はじめに Google Antigravityがリリースされました。 「Cursor, Windsurf...またAI搭載エディタか」って思いませんでした？ 僕も最初そう思ってたんです。 でもね、ドキュメント読み込んでいくうちに、ちょっと考えが変わりました。 Googl...
+Reason: fallback:heuristic_analysis
+Excerpt: はじめに Google Antigravityがリリースされました。 「Cursor, Windsurf...またAI搭載エディタか」って思いませんでした？ 僕も最初そう思ってたんです。 でもね、ドキュメント読み込んでいくうちに、ちょっと考えが変わりました。 Googl...
+Original PubDate: 2025-11-20 01:34
+Score: 29 (Tech: N=4/I=5/E=5, Culture: C=5/L=5/Cr=5)</description><category>Score:29</category></item><item><title>[#11 Score:29] クライアントライブラリ「Spring Vault 4.0」、一般提供開始</title><link>http://codezine.jp/article/detail/22633</link><guid isPermaLink="false">c5a6f1579b1e1395</guid><pubDate>Thu, 20 Nov 2025 13:47:41 +0000</pubDate><description>
+Reason: fallback:heuristic_analysis
+Excerpt: 
+Original PubDate: 2025-11-20 01:00
+Score: 29 (Tech: N=4/I=5/E=5, Culture: C=5/L=5/Cr=5)</description><category>Score:29</category></item><item><title>[#12 Score:29] Microsoft FoundryとMicrosoft 365 CopilotでClaudeモデルの提供を開始</title><link>http://codezine.jp/article/detail/22627</link><guid isPermaLink="false">da3333d7f058976a</guid><pubDate>Thu, 20 Nov 2025 13:46:41 +0000</pubDate><description>
+Reason: fallback:heuristic_analysis
+Excerpt: 
+Original PubDate: 2025-11-20 00:00
+Score: 29 (Tech: N=4/I=5/E=5, Culture: C=5/L=5/Cr=5)</description><category>Score:29</category></item><item><title>[#13 Score:29] “見えてるけど見えてない”メモリリークの実体と 5 分で防ぐテクニック</title><link>https://qiita.com/K3n_to_n17/items/cbd8f1022c37371d6e52?utm_campaign=popular_items&amp;utm_medium=feed&amp;utm_source=popular_items</link><guid isPermaLink="false">67fe4dd1d05082ec</guid><pubDate>Thu, 20 Nov 2025 13:45:41 +0000</pubDate><description>はじめに 現場で「なんだかメモリが増えている気がする」「GC（ガベージコレクション）があるから大丈夫だと思ったら落ちた…」「原因がよく分からないままサービス再起動してごまかしている」という経験はありませんか？ 本記事では、そんな“見えてるけど見えていない”存在、つまり 「...
+Reason: fallback:heuristic_analysis
 Excerpt: はじめに 現場で「なんだかメモリが増えている気がする」「GC（ガベージコレクション）があるから大丈夫だと思ったら落ちた…」「原因がよく分からないままサービス再起動してごまかしている」という経験はありませんか？ 本記事では、そんな“見えてるけど見えていない”存在、つまり 「...
-Original PubDate: 2025-11-19 23:41</description><category>Score:39</category></item><item><title>[#12 Score:39] Antigravity使ってみた - Claude Code&amp;CursorユーザーがGoogleの新IDEを触った感想</title><link>https://qiita.com/sion_neko/items/105168a19194c67a13d6?utm_campaign=popular_items&amp;utm_medium=feed&amp;utm_source=popular_items</link><guid isPermaLink="false">83ffd1c25b16725e</guid><pubDate>Thu, 20 Nov 2025 13:38:00 +0000</pubDate><description>はじめに 2025年11月18日、GoogleがAntigravityという新しいIDEを発表し、AIコーディングツールの選択肢がまた一つ増えました。早速試してみたので、普段使っているClaude Codeと比較しながら感想をまとめます。 ちょっと気になっている人に使用感...
-Score: 39 (Tech: N=7/I=8/E=7, Culture: C=5/L=4/Cr=6)
-Reason: 新しいIDEの使用感を比較する内容は興味深いが、文化的関連性は低い。
-Excerpt: はじめに 2025年11月18日、GoogleがAntigravityという新しいIDEを発表し、AIコーディングツールの選択肢がまた一つ増えました。早速試してみたので、普段使っているClaude Codeと比較しながら感想をまとめます。 ちょっと気になっている人に使用感...
-Original PubDate: 2025-11-19 16:44</description><category>Score:39</category></item><item><title>[#13 Score:37] ビジネスニーズに応える開発速度と運用安定性をどう両立？セゾンテクノロジーが挑む「自動化中心」のサービス開発</title><link>http://codezine.jp/article/detail/22374</link><guid isPermaLink="false">2c161281e668bd72</guid><pubDate>Thu, 20 Nov 2025 13:37:00 +0000</pubDate><description>AIの進化により、ITサービスプロバイダではこれまで以上に迅速な機能開発が求められている。そんなニーズに応えるため、セゾンテクノロジーは自社サービスをアプリケーションサービスで機能拡張できる仕組みを整備。またセゾンテクノロジーでは従来、人手と時間がかかっていたシステム運用スタイルを変革。人中心から自動化中心へとパラダイムシフトを実現しつつある。なぜ、このような取り組みを行ったのか。セゾンテクノロジー開発本部 DI開発部 ソフトウェア開発エンジニアの畑彰悟氏とクラウド開発エンジニアの伊東寛晶氏が解説した。
-Score: 37 (Tech: N=7/I=6/E=7, Culture: C=5/L=6/Cr=5)
-Reason: 自動化の進展は興味深いが、文化的な視点はやや不足。
-Excerpt: AIの進化により、ITサービスプロバイダではこれまで以上に迅速な機能開発が求められている。そんなニーズに応えるため、セゾンテクノロジーは自社サービスをアプリケーションサービスで機能拡張できる仕組みを整備。またセゾンテクノロジーでは従来、人手と時間がかかっていたシステム運用スタイルを変革。人中心から自動化中心へとパラダイムシフトを実現しつつある。なぜ、このよ…
-Original PubDate: 2025-11-20 03:00</description><category>Score:37</category></item><item><title>[#14 Score:37] Microsoftが「Microsoft Teams SDK」を公開、MCPなどを使ったTeamsエージェントの開発を実現</title><link>http://codezine.jp/article/detail/22625</link><guid isPermaLink="false">056de87446b60b73</guid><pubDate>Thu, 20 Nov 2025 13:36:00 +0000</pubDate><description>
-Score: 37 (Tech: N=7/I=6/E=7, Culture: C=5/L=4/Cr=6)
-Reason: Teams SDKの公開は新しい開発機会を提供するが、文化的関連性は薄い。
+Original PubDate: 2025-11-19 23:41
+Score: 29 (Tech: N=4/I=5/E=5, Culture: C=5/L=5/Cr=5)</description><category>Score:29</category></item><item><title>[#14 Score:29] Microsoftが「Microsoft Teams SDK」を公開、MCPなどを使ったTeamsエージェントの開発を実現</title><link>http://codezine.jp/article/detail/22625</link><guid isPermaLink="false">056de87446b60b73</guid><pubDate>Thu, 20 Nov 2025 13:44:41 +0000</pubDate><description>
+Reason: fallback:heuristic_analysis
 Excerpt: 
-Original PubDate: 2025-11-19 23:00</description><category>Score:37</category></item><item><title>[#15 Score:37] Microsoft FoundryとMicrosoft 365 CopilotでClaudeモデルの提供を開始</title><link>http://codezine.jp/article/detail/22627</link><guid isPermaLink="false">da3333d7f058976a</guid><pubDate>Thu, 20 Nov 2025 13:35:00 +0000</pubDate><description>
-Score: 37 (Tech: N=6/I=7/E=8, Culture: C=5/L=4/Cr=5)
-Reason: 新しいモデルの提供は技術的に重要だが、文化的な影響は限定的。
-Excerpt: 
-Original PubDate: 2025-11-20 00:00</description><category>Score:37</category></item></channel></rss>
+Original PubDate: 2025-11-19 23:00
+Score: 29 (Tech: N=4/I=5/E=5, Culture: C=5/L=5/Cr=5)</description><category>Score:29</category></item><item><title>[#15 Score:29] 「自分で調べる」患者が激増 医療従事者6人が語った 新型コロナ後の変化</title><link>https://www.technologyreview.jp/s/372057/how-conspiracy-theories-infiltrated-the-doctors-office/</link><guid isPermaLink="false">e2e0c1e01d57dd59</guid><pubDate>Thu, 20 Nov 2025 13:43:41 +0000</pubDate><description>ネットで「自分で調べた」患者がワクチンや治療を拒否——新型コロナ後、医療現場で何が起きているのか。医師や心理学者ら6人が、誤情報や陰謀論と向き合い、患者との信頼関係を再構築する試みを語った。
+Reason: fallback:heuristic_analysis
+Excerpt: ネットで「自分で調べた」患者がワクチンや治療を拒否——新型コロナ後、医療現場で何が起きているのか。医師や心理学者ら6人が、誤情報や陰謀論と向き合い、患者との信頼関係を再構築する試みを語った。
+Original PubDate: 2025-11-19 21:38
+Score: 29 (Tech: N=4/I=5/E=5, Culture: C=5/L=5/Cr=5)</description><category>Score:29</category></item></channel></rss>
