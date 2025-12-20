@@ -14,6 +14,8 @@ FEED_URLS: List[str] = [
     "https://www.technologyreview.jp/feed/",
     "https://feeds.japan.zdnet.com/rss/zdnet/all.rdf",
     "https://wirelesswire.jp/feed/",
+    "https://wired.jp/rssfeeder/",
+    "https://tech.nikkeibp.co.jp/rss/xtech-it.rdf",
 ]
 TOP_N: int = 15
 REQUEST_TIMEOUT: float = 15.0
