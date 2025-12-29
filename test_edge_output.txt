@@ -1,0 +1,4 @@
+2025-12-29 21:59:15,094 INFO src.scorer: Using individual scoring for 1 articles
+2025-12-29 21:59:17,096 INFO src.scorer: Using individual scoring for 5 articles
+2025-12-29 21:59:19,097 INFO src.scorer: Using OpenAI batch scoring for 6 articles (batch size: 20)
+2025-12-29 21:59:19,098 INFO src.scorer: Processing batch 1: articles 1-6

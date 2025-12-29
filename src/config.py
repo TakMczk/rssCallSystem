@@ -22,9 +22,9 @@ REQUEST_TIMEOUT: float = 15.0
 FETCH_CONCURRENCY: int = 5
 OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
 OPENAI_ORGANIZATION: Optional[str] = os.getenv("OPENAI_ORGANIZATION")  # Organization ID for project keys
-# Note: gpt-5-nano requires Responses API or reasoning.effort="none" (reasoning model)
-# Using gpt-4o-mini for stability with Chat Completions API
-OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+# GPT-5-nano: Use reasoning_effort="minimal" for classification tasks (0 reasoning tokens)
+# Cost: $0.05/$0.40 (67% cheaper than gpt-4o-mini), Context: 400K (3.1x), Output: 128K (8x)
+OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5-nano")
 RETRY_MAX: int = 2
 # LLM_TEMPERATURE: Not used - gpt-5-nano only supports default temperature (1.0)
 MAX_SCORE_RETRY: int = 3  # Increase retry attempts
