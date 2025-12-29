@@ -25,7 +25,7 @@ GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
 OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
 OPENAI_ORGANIZATION: Optional[str] = os.getenv("OPENAI_ORGANIZATION")  # Organization ID for project keys
 USE_OPENAI: bool = os.getenv("USE_OPENAI", "false").lower() == "true"
-OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")  # Cost-effective option
+OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5-nano")  # Fastest, most cost-efficient GPT-5 model
 RETRY_MAX: int = 2
 LLM_TEMPERATURE: float = 0.1
 MAX_SCORE_RETRY: int = 3  # Increase retry attempts
