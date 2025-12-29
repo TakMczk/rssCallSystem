@@ -138,7 +138,7 @@ async def score_article(article: Article) -> ScoreResult:
                     {"role": "user", "content": prompt}
                 ],
                 max_completion_tokens=1024,
-                reasoning_effort="minimal",  # GPT-5-nano: 0 reasoning tokens for classification
+                reasoning_effort="minimal",  # minimal reasoning for cost/performance on this simple scoring task
                 response_format={"type": "json_object"},
                 timeout=30.0
             )
@@ -231,7 +231,8 @@ async def score_articles_openai_batch(articles: List[Article], batch_id: int = 0
                     {"role": "user", "content": prompt}
                 ],
                 max_completion_tokens=16384,
-                reasoning_effort="minimal",  # GPT-5-nano: 0 reasoning tokens for batch classification
+                # Use minimal reasoning for batch classification to control cost/latency
+                reasoning_effort="minimal",
                 response_format={"type": "json_object"},
                 timeout=120.0
             )
