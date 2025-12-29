@@ -1,0 +1,81 @@
+2025-12-29 21:44:45,552 INFO httpx: HTTP Request: GET https://zenn.dev/feed "HTTP/1.1 200 OK"
+2025-12-29 21:44:45,595 INFO httpx: HTTP Request: GET https://www.publickey1.jp/atom.xml "HTTP/1.1 200 OK"
+2025-12-29 21:44:45,604 INFO httpx: HTTP Request: GET https://feeds.japan.zdnet.com/rss/zdnet/all.rdf "HTTP/1.1 200 OK"
+2025-12-29 21:44:45,660 INFO httpx: HTTP Request: GET https://qiita.com/popular-items/feed "HTTP/1.1 200 OK"
+2025-12-29 21:44:45,670 INFO httpx: HTTP Request: GET https://wired.jp/rssfeeder/ "HTTP/1.1 200 OK"
+2025-12-29 21:44:45,697 INFO httpx: HTTP Request: GET https://codezine.jp/rss/new/20/index.xml "HTTP/1.1 200 OK"
+2025-12-29 21:44:45,723 INFO httpx: HTTP Request: GET https://tech.nikkeibp.co.jp/rss/xtech-it.rdf "HTTP/1.1 301 Moved Permanently"
+2025-12-29 21:44:45,816 INFO httpx: HTTP Request: GET https://wirelesswire.jp/feed/ "HTTP/1.1 200 OK"
+2025-12-29 21:44:45,833 INFO httpx: HTTP Request: GET https://xtech.nikkei.com/rss/xtech-it.rdf "HTTP/1.1 200 OK"
+2025-12-29 21:44:46,121 INFO httpx: HTTP Request: GET https://www.technologyreview.jp/feed/ "HTTP/1.1 200 OK"
+2025-12-29 21:44:46,134 INFO src.scorer: Using OpenAI batch scoring for 25 articles (batch size: 20)
+2025-12-29 21:44:46,134 INFO src.scorer: Processing batch 1: articles 1-20
+2025-12-29 21:45:38,162 INFO httpx: HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-12-29 21:45:38,180 INFO src.scorer: OpenAI batch 1 completed successfully: 20 articles scored
+2025-12-29 21:45:39,182 INFO src.scorer: Processing batch 2: articles 21-25
+2025-12-29 21:46:04,312 INFO httpx: HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-12-29 21:46:04,316 INFO src.scorer: OpenAI batch 2 completed successfully: 5 articles scored
+============================================================
+GPT-5-nano統合テスト
+============================================================
+
+【設定確認】
+  モデル: gpt-5-nano
+  バッチサイズ: 20
+  API Key: ✅ 設定済み
+  Organization: org-Rps9ZHuRBkf1MVPk...
+
+【記事取得】
+  記事を取得中...
+  ✅ 取得完了: 25記事
+
+【スコアリング実行】
+  処理開始: 25記事
+  予想バッチ数: 2回
+
+
+============================================================
+【実行結果】
+============================================================
+  ステータス: ✅ 成功
+  処理時間: 78.18秒
+  スコア取得: 25/25記事
+  実行バッチ数: 2回
+  1記事あたり: 3.13秒
+
+【スコアサンプル (上位5件)】
+------------------------------------------------------------
+
+1. 推しキャラ駆動開発のススメ...
+   Total: 47/60  (Tech: 23/30, Culture: 24/30)
+   詳細: N=9 I=8 E=6 CR=8 LC=8 C=8
+   理由: 趣味と開発を結ぶ独創的なアプローチで文化的親和性高い。...
+
+2. wa.dev に WebAssembly Component Model のライブラリを公開してみた...
+   Total: 45/60  (Tech: 24/30, Culture: 19/30)
+   詳細: N=8 I=8 E=8 CR=6 LC=6 C=7
+   理由: WASM Component Modelの公開事例として実践性と新規性が高い。...
+
+3. ブラウザで99%まで0.55秒！Rust×Wasmで遺伝的アルゴリズムをやってみた...
+   Total: 45/60  (Tech: 24/30, Culture: 20/30)
+   詳細: N=8 I=9 E=7 CR=6 LC=6 C=8
+   理由: 高速ブラウザ実装の実例と性能データが魅力。...
+
+4. 【60億円流出】GitHub Token流出から始まったAPI改ざんとその対策...
+   Total: 44/60  (Tech: 23/30, Culture: 20/30)
+   詳細: N=7 I=8 E=8 CR=7 LC=6 C=7
+   理由: セキュリティ事案の深掘りと対策の提案。...
+
+5. リコー、LLM出力の有害判別に対応するガードレールモデルをアップデート...
+   Total: 44/60  (Tech: 24/30, Culture: 18/30)
+   詳細: N=8 I=8 E=8 CR=7 LC=5 C=6
+   理由: LLMセーフガードの最新動向を要約。多層対策の実務性が高く、有害出力検知の新機軸を示す。...
+
+------------------------------------------------------------
+
+【Gemini残存チェック】
+  ✅ OK: Gemini関連コードは完全に削除されています
+
+============================================================
+テスト完了
+============================================================

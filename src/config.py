@@ -20,23 +20,22 @@ FEED_URLS: List[str] = [
 TOP_N: int = 15
 REQUEST_TIMEOUT: float = 15.0
 FETCH_CONCURRENCY: int = 5
-SCORE_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
 OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
 OPENAI_ORGANIZATION: Optional[str] = os.getenv("OPENAI_ORGANIZATION")  # Organization ID for project keys
-USE_OPENAI: bool = os.getenv("USE_OPENAI", "false").lower() == "true"
-OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5-nano")  # Fastest, most cost-efficient GPT-5 model
+# Default model: GPT-5-nano, optimized for low-cost, high-throughput classification and similar tasks
+# Cost: $0.05/$0.40 (67% cheaper than gpt-4o-mini), Context: 400K (3.1x), Output: 128K (8x)
+OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5-nano")
 RETRY_MAX: int = 2
-LLM_TEMPERATURE: float = 0.1
+
 MAX_SCORE_RETRY: int = 3  # Increase retry attempts
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 OUTPUT_RSS_PATH: str = os.getenv("OUTPUT_RSS_PATH", "docs/rss.xml")
 CACHE_DIR: str = os.getenv("CACHE_DIR", ".cache")
 SCORE_CONCURRENCY: int = 2  # Reduce concurrent requests to avoid rate limits
 RATE_LIMIT_DELAY: float = 2.0  # Base delay for rate limit handling
-BATCH_SIZE: int = int(os.getenv("BATCH_SIZE", "10"))  # Number of articles per batch
+BATCH_SIZE: int = int(os.getenv("BATCH_SIZE", "20"))  # Number of articles per batch (optimized for gpt-5-nano)
 USE_BATCH_SCORING: bool = os.getenv("USE_BATCH_SCORING", "true").lower() == "true"
 SITE_BASE_URL: str = os.getenv("SITE_BASE_URL", "https://example.com/")
-TIME_WINDOW_HOURS: int = int(os.getenv("TIME_WINDOW_HOURS", "24"))  # Only fetch articles from the last N hours
+TIME_WINDOW_HOURS: int = int(os.getenv("TIME_WINDOW_HOURS", "24"))  # Filter articles from the last N hours
 
 os.makedirs(CACHE_DIR, exist_ok=True)
