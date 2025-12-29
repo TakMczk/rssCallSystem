@@ -6,20 +6,13 @@ from pathlib import Path
 from typing import List, Optional, Any, Dict
 import httpx
 import re
+from openai import AsyncOpenAI
 
 from .models import Article, ScoreResult
 from . import config
 from .logging_utils import get_logger
 
 logger = get_logger(__name__)
-
-# OpenAI client will be imported conditionally
-try:
-    from openai import AsyncOpenAI
-    HAS_OPENAI = True
-except ImportError:
-    logger.warning("OpenAI library not installed")
-    HAS_OPENAI = False
 
 CACHE_FILE = Path(config.CACHE_DIR) / "scores.jsonl"
 _cache: dict[str, ScoreResult] = {}
@@ -105,190 +98,109 @@ def _validate_score(score: int) -> bool:
     return 0 <= score <= 10
 
 async def score_article(article: Article) -> ScoreResult:
-    """Score a single article"""
+    """Score a single article using OpenAI"""
     # Check cache
     key = hashlib.sha256(f"{article.title}|{article.url}".encode()).hexdigest()[:16]
     async with _cache_lock:
         if key in _cache:
             return _cache[key]
 
-    # Fallback if no API key
-    if not config.GEMINI_API_KEY:
-        logger.info("GEMINI_API_KEY not set; using fallback for '%s'", article.title[:30])
-        score = ScoreResult(
-            novelty=5, interest=5, expertise=5,
-            cultural_relevance=5, lifestyle_connection=5, creativity=5,
-            reason="fallback:no_api_key"
-        )
+    # Check API key
+    if not config.OPENAI_API_KEY:
+        logger.warning("OPENAI_API_KEY not set; using fallback for '%s'", article.title[:30])
+        score = _generate_heuristic_score(article)
         async with _cache_lock:
             _cache[key] = score
         return score
 
-    # Try scoring with API
-    prompt = PROMPT_TEMPLATE.format(
-        title=article.title.replace("'", "\u0027"), 
-        summary=article.summary[:300], 
-        excerpt=article.excerpt[:300]
-    )
-    
-    score = await _score_with_retry(prompt, article.title, key, is_batch=False)
-    if not score:
-        score = _generate_heuristic_score(article)
-        
-    async with _cache_lock:
-        _cache[key] = score
-        if key not in _cache:  # Only write to file if not already cached
-            with CACHE_FILE.open("a") as f:
-                f.write(json.dumps({"id": key, "score": score.model_dump()}, ensure_ascii=False) + "\n")
-    
-    return score
-
-async def _score_with_retry(prompt: str, context: str, cache_key: str, is_batch: bool = False) -> Optional[ScoreResult]:
-    """Generic retry logic for API scoring"""
+    # Call OpenAI API with retry logic
     tries = 0
-    base_delay = 1
-    max_tokens = 2048 if is_batch else 256
-    timeout = 60 if is_batch else 30
+    score = None
     
     while tries < config.MAX_SCORE_RETRY:
         tries += 1
         try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                resp = await client.post(
-                    f"https://generativelanguage.googleapis.com/v1beta/models/{config.SCORE_MODEL}:generateContent?key={config.GEMINI_API_KEY}",
-                    json={
-                        "contents": [{"parts": [{"text": prompt}]}],
-                        "generationConfig": {
-                            "temperature": config.LLM_TEMPERATURE,
-                            "maxOutputTokens": max_tokens,
-                        },
-                    },
-                    headers={"Content-Type": "application/json"},
+            client = AsyncOpenAI(
+                api_key=config.OPENAI_API_KEY,
+                organization=config.OPENAI_ORGANIZATION
+            )
+            
+            prompt = PROMPT_TEMPLATE.format(
+                title=article.title,
+                summary=article.summary[:400],
+                excerpt=article.excerpt
+            )
+            
+            response = await client.chat.completions.create(
+                model=config.OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": "あなたは技術記事評価の専門家です。与えられた記事を客観的に評価してください。"},
+                    {"role": "user", "content": prompt}
+                ],
+                max_completion_tokens=512,
+                response_format={"type": "json_object"},
+                timeout=30.0
+            )
+            
+            text = response.choices[0].message.content.strip()
+            data = json.loads(text)
+            
+            # Validate and create score
+            scores = {
+                "novelty": int(data.get("novelty", 5)),
+                "interest": int(data.get("interest", 5)),
+                "expertise": int(data.get("expertise", 5)),
+                "cultural_relevance": int(data.get("cultural_relevance", 5)),
+                "lifestyle_connection": int(data.get("lifestyle_connection", 5)),
+                "creativity": int(data.get("creativity", 5))
+            }
+            
+            if all(_validate_score(s) for s in scores.values()):
+                score = ScoreResult(
+                    **scores,
+                    reason=str(data.get("reason", ""))[:120]
                 )
-            
-            if resp.status_code >= 400:
-                logger.error("Gemini API error %s: %s", resp.status_code, resp.text[:500])
-                resp.raise_for_status()
-                
-            body = resp.json()
-            candidates = body.get("candidates", [])
-            if not candidates:
-                raise ValueError("no candidates")
-            parts = candidates[0].get("content", {}).get("parts", [])
-            if not parts:
-                raise ValueError("no parts")
-            text = "\n".join(p.get("text", "") for p in parts).strip()
-            
-            data = _extract_json_from_text(text)
-            
-            if is_batch:
-                return data  # Return raw data for batch processing
+                break
             else:
-                # Single article processing
-                novelty = int(data.get("novelty", 5))
-                interest = int(data.get("interest", 5))
-                expertise = int(data.get("expertise", 5))
-                cultural_relevance = int(data.get("cultural_relevance", 5))
-                lifestyle_connection = int(data.get("lifestyle_connection", 5))
-                creativity = int(data.get("creativity", 5))
-                
-                if not all(_validate_score(s) for s in [novelty, interest, expertise, cultural_relevance, lifestyle_connection, creativity]):
-                    raise ValueError("score out of range")
-                    
-                reason = str(data.get("reason", ""))[:120]
-                return ScoreResult(
-                    novelty=novelty, interest=interest, expertise=expertise,
-                    cultural_relevance=cultural_relevance, lifestyle_connection=lifestyle_connection, creativity=creativity,
-                    reason=reason
-                )
+                logger.warning("Invalid scores for article '%s'", article.title[:30])
+                raise ValueError("Invalid score range")
                 
         except Exception as e:
-            logger.warning("Score error (%s) %s: %s", tries, context[:30], str(e)[:180])
+            logger.warning("OpenAI API error (attempt %d/%d) for '%s': %s", 
+                          tries, config.MAX_SCORE_RETRY, article.title[:30], str(e)[:100])
             
             if tries >= config.MAX_SCORE_RETRY:
-                return None
+                break
                 
             # Exponential backoff
-            delay = base_delay * (2 ** (tries - 1)) + (0.1 * tries)
-            if "429" in str(e) or "Too Many Requests" in str(e):
+            delay = (2 ** (tries - 1)) + (0.1 * tries)
+            if "429" in str(e) or "rate_limit" in str(e).lower():
                 delay *= 2
+                logger.info("Rate limit detected, backing off for %.1f seconds", delay)
             await asyncio.sleep(delay)
     
-    return None
-
-async def score_articles_batch(articles: List[Article], batch_id: int = 0) -> List[ScoreResult]:
-    """Score multiple articles in a single Gemini API call"""
-    if not config.GEMINI_API_KEY:
-        logger.info("GEMINI_API_KEY not set; using fallback for batch %d (%d articles)", batch_id, len(articles))
-        return [ScoreResult(
-            novelty=5, interest=5, expertise=5,
-            cultural_relevance=5, lifestyle_connection=5, creativity=5,
-            reason="fallback:no_api_key"
-        ) for _ in articles]
+    # Use heuristic fallback if all retries failed
+    if not score:
+        logger.warning("All retry attempts failed for '%s', using heuristic", article.title[:30])
+        score = _generate_heuristic_score(article)
     
-    # Build batch prompt
-    articles_text = ""
-    for i, article in enumerate(articles):
-        articles_text += f"記事ID: {i}\n"
-        articles_text += f"タイトル: {article.title[:100]}\n"
-        articles_text += f"概要: {article.summary[:200]}\n"
-        articles_text += f"抜粋: {article.excerpt[:200]}\n\n"
+    # Cache result
+    async with _cache_lock:
+        _cache[key] = score
+        with CACHE_FILE.open("a") as f:
+            f.write(json.dumps({"id": key, "score": score.model_dump()}, ensure_ascii=False) + "\n")
     
-    prompt = BATCH_PROMPT_TEMPLATE.format(articles=articles_text)
-    
-    # Try API call with retry
-    data = await _score_with_retry(prompt, f"batch {batch_id}", "", is_batch=True)
-    
-    if not data or not isinstance(data, list):
-        # Fallback to heuristic scoring
-        logger.info("Batch %d failed, using heuristic fallback for %d articles", batch_id, len(articles))
-        return [_generate_heuristic_score(article) for article in articles]
-    
-    # Process batch response
-    results = []
-    for i, article in enumerate(articles):
-        article_result = next((item for item in data if item.get("id") == i), None)
-        
-        if article_result:
-            try:
-                novelty = int(article_result.get("novelty", 5))
-                interest = int(article_result.get("interest", 5))
-                expertise = int(article_result.get("expertise", 5))
-                cultural_relevance = int(article_result.get("cultural_relevance", 5))
-                lifestyle_connection = int(article_result.get("lifestyle_connection", 5))
-                creativity = int(article_result.get("creativity", 5))
-                reason = str(article_result.get("reason", ""))[:120]
-                
-                if all(_validate_score(s) for s in [novelty, interest, expertise, cultural_relevance, lifestyle_connection, creativity]):
-                    results.append(ScoreResult(
-                        novelty=novelty, interest=interest, expertise=expertise,
-                        cultural_relevance=cultural_relevance, lifestyle_connection=lifestyle_connection, creativity=creativity,
-                        reason=reason
-                    ))
-                else:
-                    results.append(_generate_heuristic_score(article))
-            except (ValueError, TypeError):
-                results.append(_generate_heuristic_score(article))
-        else:
-            results.append(ScoreResult(
-                novelty=5, interest=5, expertise=5,
-                cultural_relevance=5, lifestyle_connection=5, creativity=5,
-                reason="fallback:not_in_batch_response"
-            ))
-    
-    logger.info("Batch %d completed successfully: %d articles scored", batch_id, len(results))
-    return results
+    return score
 
 
 async def score_articles_openai_batch(articles: List[Article], batch_id: int = 0) -> List[ScoreResult]:
-    """Score multiple articles using OpenAI GPT API in batch"""
-    if not HAS_OPENAI or not config.OPENAI_API_KEY:
-        reason = "fallback:no_openai_library" if not HAS_OPENAI else "fallback:no_openai_key"
-        logger.info("OpenAI unavailable; using fallback for batch %d (%d articles)", batch_id, len(articles))
+    """Score multiple articles using OpenAI GPT-5-nano API in batch"""
+    if not config.OPENAI_API_KEY:
+        logger.warning("OPENAI_API_KEY not set; using fallback for batch %d (%d articles)", batch_id, len(articles))
         return [ScoreResult(
             novelty=5, interest=5, expertise=5,
             cultural_relevance=5, lifestyle_connection=5, creativity=5,
-            reason=reason
+            reason="fallback:no_openai_key"
         ) for _ in articles]
     
     client = AsyncOpenAI(
@@ -296,13 +208,13 @@ async def score_articles_openai_batch(articles: List[Article], batch_id: int = 0
         organization=config.OPENAI_ORGANIZATION or None
     )
     
-    # Build batch prompt
+    # Build batch prompt (with full article content for better evaluation)
     articles_text = ""
     for i, article in enumerate(articles):
         articles_text += f"記事ID: {i}\n"
-        articles_text += f"タイトル: {article.title[:100]}\n"
-        articles_text += f"概要: {article.summary[:200]}\n"
-        articles_text += f"抜粋: {article.excerpt[:200]}\n\n"
+        articles_text += f"タイトル: {article.title}\n"
+        articles_text += f"概要: {article.summary[:400]}\n"
+        articles_text += f"抜粋: {article.excerpt}\n\n"
     
     prompt = BATCH_PROMPT_TEMPLATE.format(articles=articles_text)
     
@@ -317,9 +229,9 @@ async def score_articles_openai_batch(articles: List[Article], batch_id: int = 0
                     {"role": "system", "content": "あなたは技術記事評価の専門家です。与えられた記事を客観的に評価してください。"},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=config.LLM_TEMPERATURE,
-                max_tokens=2048,
-                response_format={"type": "json_object"}
+                max_completion_tokens=8192,
+                response_format={"type": "json_object"},
+                timeout=120.0
             )
             
             text = response.choices[0].message.content.strip()
@@ -397,10 +309,9 @@ async def score_articles(articles: List[Article]) -> List[ScoreResult]:
         return await _process_individual_scoring(articles)
 
 async def _process_batch_scoring(articles: List[Article]) -> List[ScoreResult]:
-    """Process articles using batch scoring"""
-    api_method = "OpenAI" if config.USE_OPENAI else "Gemini"
-    logger.info("Using %s batch scoring for %d articles (batch size: %d)", 
-               api_method, len(articles), config.BATCH_SIZE)
+    """Process articles using OpenAI batch scoring"""
+    logger.info("Using OpenAI batch scoring for %d articles (batch size: %d)", 
+               len(articles), config.BATCH_SIZE)
     
     all_results: List[ScoreResult] = []
     
@@ -411,11 +322,8 @@ async def _process_batch_scoring(articles: List[Article]) -> List[ScoreResult]:
         logger.info("Processing batch %d: articles %d-%d", batch_id, i+1, i+len(batch))
         
         try:
-            # Choose batch processing method
-            if config.USE_OPENAI:
-                batch_results = await score_articles_openai_batch(batch, batch_id)
-            else:
-                batch_results = await score_articles_batch(batch, batch_id)
+            # Process batch with OpenAI
+            batch_results = await score_articles_openai_batch(batch, batch_id)
                 
             all_results.extend(batch_results)
             await _cache_batch_results(batch, batch_results)

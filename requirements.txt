@@ -4,7 +4,7 @@ pydantic
 python-dateutil
 bleach
 python-dotenv
-openai
+openai>=2.14.0  # GPT-5 support with max_completion_tokens
 
 # dev
 yapf
