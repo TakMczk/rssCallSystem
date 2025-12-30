@@ -53,6 +53,12 @@ OPENAI_ORGANIZATION=your_org_id_here  # Optional
 
 # Model Configuration (optional)
 OPENAI_MODEL=gpt-5-nano  # Default
+
+# RSS reader compatibility (optional)
+# If your reader hides items as duplicates (e.g. Inoreader duplicate filters),
+# this makes each item's <link> unique by appending a stable query param.
+RSS_DEDUPLICATE_LINKS=true
+RSS_DEDUP_PARAM_KEY=rcs_id
 ```
 
 ## 使い方

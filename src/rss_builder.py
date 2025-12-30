@@ -1,11 +1,26 @@
 from __future__ import annotations
 from datetime import datetime, timezone, timedelta
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from xml.sax.saxutils import escape
 from .models import RankedArticle
 from . import config
 from email.utils import format_datetime
 
 RSS_HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+
+
+def _decorate_item_link(url: str, guid: str) -> str:
+    if not config.RSS_DEDUPLICATE_LINKS:
+        return url
+    key = (config.RSS_DEDUP_PARAM_KEY or "").strip()
+    if not key:
+        return url
+
+    parts = urlsplit(url)
+    query_pairs = [(k, v) for (k, v) in parse_qsl(parts.query, keep_blank_values=True) if k != key]
+    query_pairs.append((key, guid))
+    new_query = urlencode(query_pairs, doseq=True)
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, new_query, parts.fragment))
 
 def build_rss(articles: list[RankedArticle]) -> str:
     now_dt = datetime.now(timezone.utc)
@@ -50,13 +65,18 @@ def build_rss(articles: list[RankedArticle]) -> str:
         excerpt_html = f"<p><strong>Excerpt:</strong> {escape(a.excerpt)}</p>" if a.excerpt else ""
         original_date_html = f"<p><small>Original PubDate: {original_date_str}</small></p>"
 
+        original_url_str = str(a.url)
+        original_url_html = f"<p><small>Original URL: {escape(original_url_str)}</small></p>"
+
         # Combine into a CDATA block for the description
-        description_content = f"{summary_html}{reason_html}{score_html}{excerpt_html}{original_date_html}"
+        description_content = f"{summary_html}{reason_html}{score_html}{excerpt_html}{original_date_html}{original_url_html}"
+
+        item_link = _decorate_item_link(original_url_str, guid=a.id)
         
         item_parts = [
             "<item>",
             f"<title>{escape(title_with_score)}</title>",
-            f"<link>{escape(str(a.url))}</link>",
+            f"<link>{escape(item_link)}</link>",
             f"<guid isPermaLink=\"false\">{escape(a.id)}</guid>",
             f"<pubDate>{pub}</pubDate>",
             f"<description><![CDATA[{description_content}]]></description>",

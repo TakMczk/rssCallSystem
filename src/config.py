@@ -38,4 +38,10 @@ USE_BATCH_SCORING: bool = os.getenv("USE_BATCH_SCORING", "true").lower() == "tru
 SITE_BASE_URL: str = os.getenv("SITE_BASE_URL", "https://example.com/")
 TIME_WINDOW_HOURS: int = int(os.getenv("TIME_WINDOW_HOURS", "24"))  # Filter articles from the last N hours
 
+# Some RSS readers (and Inoreader's optional "duplicate filters") can hide items
+# if they consider them duplicates across feeds/folders/account. When enabled,
+# we make per-item links unique by appending a stable query parameter.
+RSS_DEDUPLICATE_LINKS: bool = os.getenv("RSS_DEDUPLICATE_LINKS", "true").lower() == "true"
+RSS_DEDUP_PARAM_KEY: str = os.getenv("RSS_DEDUP_PARAM_KEY", "rcs_id")
+
 os.makedirs(CACHE_DIR, exist_ok=True)
