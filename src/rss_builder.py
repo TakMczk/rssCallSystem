@@ -20,12 +20,11 @@ def build_rss(articles: list[RankedArticle]) -> str:
     ]
     item_xml: list[str] = []
     for i, a in enumerate(articles, start=1):
-        # Use the article's original publication time but clamp it to "now" so
-        # future-dated entries are not filtered out by RSS readers (e.g. Inoreader).
-        base_pub_dt = a.published_at.astimezone(timezone.utc)
-        safe_pub_dt = min(base_pub_dt, now_dt)
-        # Slightly offset to keep deterministic ordering even when times match.
-        pub = format_datetime(safe_pub_dt - timedelta(seconds=i))
+        # Publish items in strict rank order with monotonically decreasing times
+        # to avoid reader-side truncation when entries are not time-sorted. We
+        # still include the original publication date inside the description.
+        pub_dt = now_dt - timedelta(seconds=i)
+        pub = format_datetime(pub_dt)
         
         # Add rank and score to title for clarity
         title_with_score = f"[#{i} Score:{a.total}] {a.title}"
