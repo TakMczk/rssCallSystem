@@ -4,7 +4,7 @@
 		{
 			"label": "Run Tests",
 			"type": "shell",
-			"command": "source .env && python -m pytest tests/ -v",
+			"command": "source .env && PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -v",
 			"group": "test",
 			"problemMatcher": [
 				"$python"
@@ -60,7 +60,7 @@
 		{
 			"label": "Test scorer fallback",
 			"type": "shell",
-			"command": "cd /Users/rucaye/Documents/Code/rssCallSystem && python -m pytest tests/test_scorer_fallback.py -v",
+			"command": "cd /Users/rucaye/Documents/Code/rssCallSystem && PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/test_scorer_fallback.py -v",
 			"problemMatcher": [
 				"$python"
 			],
@@ -69,7 +69,7 @@
 		{
 			"label": "Run all tests",
 			"type": "shell",
-			"command": "cd /Users/rucaye/Documents/Code/rssCallSystem && python -m pytest tests/ -v",
+			"command": "cd /Users/rucaye/Documents/Code/rssCallSystem && PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/ -v",
 			"problemMatcher": [
 				"$python"
 			],
@@ -78,7 +78,7 @@
 		{
 			"label": "Run pytest quietly",
 			"type": "shell",
-			"command": "cd /Users/rucaye/Documents/Code/rssCallSystem && python -m pytest -q",
+			"command": "cd /Users/rucaye/Documents/Code/rssCallSystem && PYTHONDONTWRITEBYTECODE=1 python -m pytest -q",
 			"problemMatcher": [
 				"$python"
 			],

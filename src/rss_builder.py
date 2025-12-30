@@ -29,8 +29,10 @@ def build_rss(articles: list[RankedArticle]) -> str:
         pub_dt = now_dt - timedelta(seconds=i)
         pub = format_datetime(pub_dt)
         
-        # Add rank and score to title for clarity
-        title_with_score = f"[#{i} Score:{a.total}] {a.title}"
+        # Add rank and score to title for clarity.
+        # Place it at the end to avoid some readers' similarity/duplicate heuristics
+        # collapsing items that share a common prefix.
+        title_with_score = f"{a.title} [#{i} Score:{a.total}]"
         
         # Include original publication date in description
         original_date_str = a.published_at.strftime('%Y-%m-%d %H:%M')
