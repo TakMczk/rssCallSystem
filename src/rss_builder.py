@@ -10,13 +10,16 @@ RSS_HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
 def build_rss(articles: list[RankedArticle]) -> str:
     now_dt = datetime.now(timezone.utc)
     now_str = format_datetime(now_dt)
+    feed_url = f"{config.SITE_BASE_URL.rstrip('/')}/rss.xml"
     channel_parts = [
         "<channel>",
         "<title>Tech Curated Top 30</title>",
-    f"<link>{escape(config.SITE_BASE_URL)}</link>",
+        f"<link>{escape(config.SITE_BASE_URL)}</link>",
+        f"<atom:link href=\"{escape(feed_url)}\" rel=\"self\" type=\"application/rss+xml\" />",
         "<description>Ranked top technical articles</description>",
         f"<lastBuildDate>{now_str}</lastBuildDate>",
         "<language>ja</language>",
+        "<ttl>60</ttl>",
     ]
     item_xml: list[str] = []
     for i, a in enumerate(articles, start=1):
@@ -61,4 +64,4 @@ def build_rss(articles: list[RankedArticle]) -> str:
         item_xml.append("".join(item_parts))
     channel_parts.extend(item_xml)
     channel_parts.append("</channel>")
-    return f"{RSS_HEADER}<rss version=\"2.0\">{''.join(channel_parts)}</rss>"
+    return f"{RSS_HEADER}<rss version=\"2.0\" xmlns:atom=\"http://www.w3.org/2005/Atom\">{''.join(channel_parts)}</rss>"
