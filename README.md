@@ -7,6 +7,7 @@
 - 🚀 **高速**: GPT-5-nanoで63%高速化（21秒/25記事）
 - 💰 **低コスト**: gpt-4o-miniから67%コスト削減
 - 🎯 **高品質**: 6次元スコアリング（新規性、興味性、専門性、文化関連性、生活接続性、創造性）
+- 🧭 **ハイブリッド順位づけ**: LLM総合点に鮮度ボーナスとソース多様性ペナルティを加味
 - 📊 **バッチ処理**: BATCH_SIZE=20で効率的なAPI呼び出し
 - 🔄 **キャッシング**: スコア結果をキャッシュして重複処理を削減
 
@@ -89,6 +90,22 @@ find . -name '*.pyc' -delete && find . -name '__pycache__' -type d -exec rm -rf 
 
 生成されたRSSフィードは `docs/rss.xml` に保存されます。
 
+## 既定の収集フィード
+
+既定では以下の技術系フィードを巡回します。
+
+- `https://zenn.dev/feed`
+- `https://codezine.jp/rss/new/20/index.xml`
+- `https://qiita.com/popular-items/feed`
+- `https://www.publickey1.jp/atom.xml`
+- `https://www.technologyreview.jp/feed/`
+- `https://feeds.japan.zdnet.com/rss/zdnet/all.rdf`
+- `https://wirelesswire.jp/feed/`
+- `https://wired.jp/rssfeeder/`
+- `https://xenospectrum.com/feed/`
+- `https://tech.nikkeibp.co.jp/rss/xtech-it.rdf`
+- `https://b.hatena.ne.jp/hotentry/it.rss`
+
 ## GPT-5-nanoへの移行
 
 ### なぜGPT-5-nano？
@@ -123,14 +140,24 @@ response = await client.chat.completions.create(
 
 | 次元 | 説明 | 重み |
 |-----|------|------|
-| 新規性 (Novelty) | 新しい技術・アイデアの度合い | 30点満点 |
-| 興味性 (Interest) | 読者の関心を引く度合い | 30点満点 |
-| 専門性 (Expertise) | 技術的深さ・詳細度 | 30点満点 |
-| 文化関連性 (Cultural Relevance) | 文化・社会への影響 | 30点満点 |
-| 生活接続性 (Lifestyle Connection) | 日常生活への関連性 | 30点満点 |
-| 創造性 (Creativity) | 独創的なアプローチ | 30点満点 |
+| 新規性 (Novelty) | 新しい技術・アイデアの度合い | Tech 合算に寄与 |
+| 興味性 (Interest) | 読者の関心を引く度合い | Tech 合算に寄与 |
+| 専門性 (Expertise) | 技術的深さ・詳細度 | Tech 合算に寄与 |
+| 文化関連性 (Cultural Relevance) | 文化・社会への影響 | Culture 合算に寄与 |
+| 生活接続性 (Lifestyle Connection) | 日常生活への関連性 | Culture 合算に寄与 |
+| 創造性 (Creativity) | 独創的なアプローチ | Culture 合算に寄与 |
 
-**合計**: 60点満点（Tech: 30点 + Culture: 30点）
+**合計**: 60点満点（Tech 40点相当 + Culture 20点相当）
+
+## ランキング方式
+
+現在の並び順は、単純な総合点ソートではなく次のハイブリッド方式です。
+
+1. `ScoreResult.total` をベーススコアとして使用
+2. 公開時刻に応じて鮮度ボーナスを追加
+3. 同一ソースが上位を占有しすぎないよう、選抜時にソフトな repeat penalty を適用
+
+この設計は Reddit / Hacker News / Lobsters の time-decay 発想と、NewsBlur の「偏りを明示的に制御する」考え方を、小さく deterministic に取り入れたものです。
 
 ## パフォーマンス
 
@@ -181,6 +208,7 @@ python test_integrated.py
 ### 3. キャッシング
 
 - JSONLファイルでスコア結果をキャッシュ
+- `SCORER_CACHE_VERSION` をキーに含め、rubric変更時の stale cache 再利用を防止
 - 同じ記事の再スコアリングを回避
 
 ### 4. 柔軟な設定

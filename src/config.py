@@ -15,13 +15,17 @@ FEED_URLS: List[str] = [
     "https://feeds.japan.zdnet.com/rss/zdnet/all.rdf",
     "https://wirelesswire.jp/feed/",
     "https://wired.jp/rssfeeder/",
+    "https://xenospectrum.com/feed/",
     "https://tech.nikkeibp.co.jp/rss/xtech-it.rdf",
+    "https://b.hatena.ne.jp/hotentry/it.rss",
 ]
 TOP_N: int = 15
 REQUEST_TIMEOUT: float = 15.0
 FETCH_CONCURRENCY: int = 5
 OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
-OPENAI_ORGANIZATION: Optional[str] = os.getenv("OPENAI_ORGANIZATION")  # Organization ID for project keys
+OPENAI_ORGANIZATION: Optional[str] = os.getenv(
+    "OPENAI_ORGANIZATION"
+)  # Organization ID for project keys
 # Default model: GPT-5-nano, optimized for low-cost, high-throughput classification and similar tasks
 # Cost: $0.05/$0.40 (67% cheaper than gpt-4o-mini), Context: 400K (3.1x), Output: 128K (8x)
 OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5-nano")
@@ -33,15 +37,37 @@ OUTPUT_RSS_PATH: str = os.getenv("OUTPUT_RSS_PATH", "docs/rss.xml")
 CACHE_DIR: str = os.getenv("CACHE_DIR", ".cache")
 SCORE_CONCURRENCY: int = 2  # Reduce concurrent requests to avoid rate limits
 RATE_LIMIT_DELAY: float = 2.0  # Base delay for rate limit handling
-BATCH_SIZE: int = int(os.getenv("BATCH_SIZE", "20"))  # Number of articles per batch (optimized for gpt-5-nano)
+BATCH_SIZE: int = int(
+    os.getenv("BATCH_SIZE", "20")
+)  # Number of articles per batch (optimized for gpt-5-nano)
 USE_BATCH_SCORING: bool = os.getenv("USE_BATCH_SCORING", "true").lower() == "true"
 SITE_BASE_URL: str = os.getenv("SITE_BASE_URL", "https://example.com/")
-TIME_WINDOW_HOURS: int = int(os.getenv("TIME_WINDOW_HOURS", "24"))  # Filter articles from the last N hours
+TIME_WINDOW_HOURS: int = int(
+    os.getenv("TIME_WINDOW_HOURS", "24")
+)  # Filter articles from the last N hours
+RANKING_ENABLE_HYBRID: bool = (
+    os.getenv("RANKING_ENABLE_HYBRID", "true").lower() == "true"
+)
+RANKING_ENABLE_DIVERSITY: bool = (
+    os.getenv("RANKING_ENABLE_DIVERSITY", "true").lower() == "true"
+)
+RANKING_FRESHNESS_HALF_LIFE_HOURS: float = float(
+    os.getenv("RANKING_FRESHNESS_HALF_LIFE_HOURS", "18.0")
+)
+RANKING_FRESHNESS_MAX_BONUS: float = float(
+    os.getenv("RANKING_FRESHNESS_MAX_BONUS", "6.0")
+)
+RANKING_SOURCE_REPEAT_PENALTY: float = float(
+    os.getenv("RANKING_SOURCE_REPEAT_PENALTY", "1.5")
+)
+SCORER_CACHE_VERSION: str = os.getenv("SCORER_CACHE_VERSION", "v2")
 
 # Some RSS readers (and Inoreader's optional "duplicate filters") can hide items
 # if they consider them duplicates across feeds/folders/account. When enabled,
 # we make per-item links unique by appending a stable query parameter.
-RSS_DEDUPLICATE_LINKS: bool = os.getenv("RSS_DEDUPLICATE_LINKS", "true").lower() == "true"
+RSS_DEDUPLICATE_LINKS: bool = (
+    os.getenv("RSS_DEDUPLICATE_LINKS", "true").lower() == "true"
+)
 RSS_DEDUP_PARAM_KEY: str = os.getenv("RSS_DEDUP_PARAM_KEY", "rcs_id")
 
 os.makedirs(CACHE_DIR, exist_ok=True)

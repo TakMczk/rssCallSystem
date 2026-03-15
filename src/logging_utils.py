@@ -5,6 +5,7 @@ _DEF_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
 
 _logging_configured = False
 
+
 def setup_logging():
     global _logging_configured
     if _logging_configured:
