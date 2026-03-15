@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
 from . import config
-from .fetcher import fetch_all_feeds, normalize
+from .fetcher import _DEF_PUB_DT, fetch_all_feeds, normalize
 from .scorer import score_articles
 from .ranking import sort_ranked
 from .rss_builder import build_rss
@@ -12,10 +12,21 @@ from .models import RankedArticle, Article
 from .logging_utils import get_logger
 
 logger = get_logger(__name__)
+_MAX_DEFAULT_PUBLISHED_FUTURE_SKEW = timedelta(hours=1)
 
 
 def _recent_article_grace_cutoff(current_time: datetime, hours: int) -> datetime:
     return current_time - timedelta(hours=hours * 2)
+
+
+def _effective_recent_at(article: Article, current_time: datetime) -> datetime:
+    freshness_at = article.freshness_at or article.published_at
+    if (
+        article.published_at == _DEF_PUB_DT
+        and freshness_at > current_time + _MAX_DEFAULT_PUBLISHED_FUTURE_SKEW
+    ):
+        return article.published_at
+    return min(freshness_at, current_time)
 
 
 def filter_recent_articles(articles: list[Article], hours: int) -> list[Article]:
@@ -28,8 +39,12 @@ def filter_recent_articles(articles: list[Article], hours: int) -> list[Article]
         for a in articles
         if a.published_at >= cutoff_time
         or (
+            a.published_at == _DEF_PUB_DT
+            and _effective_recent_at(a, current_time) >= cutoff_time
+        )
+        or (
             a.published_at >= grace_cutoff
-            and min(a.freshness_at or a.published_at, current_time) >= cutoff_time
+            and _effective_recent_at(a, current_time) >= cutoff_time
         )
     ]
     logger.info(

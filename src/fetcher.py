@@ -30,6 +30,7 @@ TRACKING_QUERY_PREFIXES = ("utm_",)
 TRACKING_QUERY_KEYS = {"fbclid", "gclid", "yclid", "mc_cid", "mc_eid"}
 _DEFAULT_PORTS = {"http": 80, "https": 443}
 _TRUSTED_HOST_PREFIXES = ("www", "feed", "feeds", "rss")
+_UNTRUSTED_FRESHNESS_HOSTS = {"b.hatena.ne.jp"}
 _MERGE_PUBLISH_WINDOW_SECONDS = 12 * 60 * 60
 _MAX_TRUSTED_FRESHNESS_EXTENSION = timedelta(days=7)
 
@@ -317,6 +318,8 @@ def _metadata_priority(article: Article) -> tuple[int, int, int, int]:
 def _is_trusted_article_source(article: Article) -> bool:
     article_host = _host(str(article.url))
     source_host = _host(article.source)
+    if source_host in _UNTRUSTED_FRESHNESS_HOSTS:
+        return False
     return bool(_host_variants(article_host) & _host_variants(source_host))
 
 
@@ -452,10 +455,28 @@ async def fetch_all_feeds(urls: List[str]) -> List[RawFeedItem]:
 _DEF_PUB_DT = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
+def _raw_item_sort_key(item: RawFeedItem) -> tuple[str, str, int, int, str, str]:
+    title = item.title or "(no title)"
+    published = (_ensure_timezone(item.published) or _DEF_PUB_DT).astimezone(
+        timezone.utc
+    )
+    freshness = (_ensure_timezone(item.updated) or published).astimezone(timezone.utc)
+    resolved_link = _resolved_link(str(item.link), item.source)
+    canonical_url = _canonicalize_url(resolved_link)
+    return (
+        canonical_url,
+        _normalized_title_key(title),
+        int(published.timestamp()),
+        int(freshness.timestamp()),
+        item.source,
+        resolved_link,
+    )
+
+
 def normalize(raw_items: List[RawFeedItem]) -> List[Article]:
     articles_by_key: dict[str, Article] = {}
     canonical_groups: dict[str, list[str]] = {}
-    for r in raw_items:
+    for r in sorted(raw_items, key=_raw_item_sort_key):
         title = r.title or "(no title)"
         pub = _ensure_timezone(r.published) or _DEF_PUB_DT
         pub = pub.astimezone(timezone.utc)
