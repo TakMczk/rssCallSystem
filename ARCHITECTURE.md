@@ -27,7 +27,7 @@ RSS Call Systemは、複数のRSSフィードから技術記事を収集し、AI
        ▼
 ┌─────────────┐
 │  Ranking    │ (src/ranking.py)
-│ スコアソート │
+│ Hybrid Rank │
 └──────┬──────┘
        │
        ▼
@@ -52,6 +52,8 @@ RSS Call Systemは、複数のRSSフィードから技術記事を収集し、AI
 
 - 非同期HTTP通信（httpx）
 - RSS/Atomパース（feedparser）
+- `published` / `updated` / `*_parsed` の日付吸収
+- canonical URL ベースの重複除外
 - エラーハンドリングとリトライ
 - 重複記事の除外
 
@@ -65,7 +67,7 @@ RSS Call Systemは、複数のRSSフィードから技術記事を収集し、AI
 
 - **バッチ処理**: 6記事以上は20件ずつバッチ処理（API呼び出し50%削減）
 - **個別処理**: 5記事以下は個別にスコアリング
-- **キャッシング**: JSONLファイルでスコア結果を保存
+- **キャッシング**: JSONLファイルでスコア結果を保存（cache version対応）
 - **6次元評価**:
   - 新規性 (Novelty): 0-10点
   - 興味性 (Interest): 0-10点
@@ -88,11 +90,13 @@ response_format={"type": "json_object"}
 
 ### 3. Ranking (src/ranking.py)
 
-**役割**: スコアに基づく記事のソート
+**役割**: LLMスコアをベースにしたハイブリッド順位づけ
 
 **機能**:
 
-- 合計スコア（60点満点）で降順ソート
+- 合計スコア（60点満点）をベースにソート
+- 時間減衰ベースの鮮度ボーナス
+- 同一ソース偏重を緩和する soft diversity penalty
 - Tech Score (30点) = 新規性 + 興味性 + 専門性
 - Culture Score (30点) = 文化関連性 + 生活接続性 + 創造性
 
@@ -149,8 +153,8 @@ class ScoreResult:
         return self.cultural_relevance + self.lifestyle_connection + self.creativity
     
     @property
-    def total_score(self) -> int:
-        return self.tech_score + self.culture_score
+    def total(self) -> int:
+        return round(self.tech_score * 4 / 3 + self.culture_score * 2 / 3)
 ```
 
 ## パフォーマンス最適化
@@ -168,7 +172,7 @@ class ScoreResult:
 ### 3. キャッシング
 
 - **ファイル**: `.cache/scores.jsonl`
-- **キー**: `title + published` のハッシュ
+- **キー**: `SCORER_CACHE_VERSION + title + url` のハッシュ
 - **効果**: 同じ記事の再スコアリングを回避
 
 ### 4. 非同期処理

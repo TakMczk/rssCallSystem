@@ -13,12 +13,30 @@ from .logging_utils import get_logger
 
 logger = get_logger(__name__)
 
+
+def _recent_article_grace_cutoff(current_time: datetime, hours: int) -> datetime:
+    return current_time - timedelta(hours=hours * 2)
+
+
 def filter_recent_articles(articles: list[Article], hours: int) -> list[Article]:
-    """Filter articles published within the last N hours."""
-    cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
-    filtered = [a for a in articles if a.published_at >= cutoff_time]
-    logger.info(f"filtered articles: {len(articles)} -> {len(filtered)} (within {hours} hours)")
+    """Filter recently published articles, with a bounded grace period for updates."""
+    current_time = datetime.now(timezone.utc)
+    cutoff_time = current_time - timedelta(hours=hours)
+    grace_cutoff = _recent_article_grace_cutoff(current_time, hours)
+    filtered = [
+        a
+        for a in articles
+        if a.published_at >= cutoff_time
+        or (
+            a.published_at >= grace_cutoff
+            and min(a.freshness_at or a.published_at, current_time) >= cutoff_time
+        )
+    ]
+    logger.info(
+        f"filtered articles: {len(articles)} -> {len(filtered)} (within {hours} hours)"
+    )
     return filtered
+
 
 async def run():
     logger.info("start pipeline")
@@ -26,14 +44,14 @@ async def run():
     logger.info(f"fetched raw items: {len(raw)}")
     articles = normalize(raw)
     logger.info(f"normalized unique items: {len(articles)}")
-    
+
     # Filter articles to only those published within the configured time window
     articles = filter_recent_articles(articles, config.TIME_WINDOW_HOURS)
-    
+
     if not articles:
         logger.warning("no articles found within the time window")
         return
-    
+
     scores = await score_articles(articles)
     ranked: list[RankedArticle] = []
     for a, s in zip(articles, scores):
@@ -44,6 +62,7 @@ async def run():
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(rss_xml, encoding="utf-8")
     logger.info(f"wrote rss: {out_path} ({len(ranked_sorted)} items)")
+
 
 if __name__ == "__main__":
     asyncio.run(run())

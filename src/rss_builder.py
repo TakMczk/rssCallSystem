@@ -1,12 +1,38 @@
 from __future__ import annotations
 from datetime import datetime, timezone, timedelta
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import SplitResult, parse_qsl, urlencode, urlsplit, urlunsplit
 from xml.sax.saxutils import escape
 from .models import RankedArticle
 from . import config
+from .fetcher import _canonicalize_url
 from email.utils import format_datetime
 
-RSS_HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+RSS_HEADER = '<?xml version="1.0" encoding="UTF-8"?>'
+_PUBLIC_LINK_SCHEMES = {"http", "https"}
+
+
+def _safe_urlsplit(url: str) -> SplitResult | None:
+    try:
+        return urlsplit(url)
+    except ValueError:
+        return None
+
+
+def _safe_cdata(text: str) -> str:
+    return text.replace("]]>", "]]]]><![CDATA[>")
+
+
+def _safe_public_link(url: str) -> str:
+    parts = _safe_urlsplit(url)
+    if parts is None:
+        return config.SITE_BASE_URL
+    if parts.scheme.lower() not in _PUBLIC_LINK_SCHEMES:
+        return config.SITE_BASE_URL
+    if not parts.netloc:
+        return config.SITE_BASE_URL
+    if parts.username or parts.password:
+        return config.SITE_BASE_URL
+    return _canonicalize_url(url)
 
 
 def _decorate_item_link(url: str, guid: str) -> str:
@@ -16,11 +42,18 @@ def _decorate_item_link(url: str, guid: str) -> str:
     if not key:
         return url
 
-    parts = urlsplit(url)
-    query_pairs = [(k, v) for (k, v) in parse_qsl(parts.query, keep_blank_values=True) if k != key]
+    parts = _safe_urlsplit(url)
+    if parts is None:
+        return url
+    query_pairs = [
+        (k, v) for (k, v) in parse_qsl(parts.query, keep_blank_values=True) if k != key
+    ]
     query_pairs.append((key, guid))
     new_query = urlencode(query_pairs, doseq=True)
-    return urlunsplit((parts.scheme, parts.netloc, parts.path, new_query, parts.fragment))
+    return urlunsplit(
+        (parts.scheme, parts.netloc, parts.path, new_query, parts.fragment)
+    )
+
 
 def build_rss(articles: list[RankedArticle]) -> str:
     now_dt = datetime.now(timezone.utc)
@@ -30,7 +63,7 @@ def build_rss(articles: list[RankedArticle]) -> str:
         "<channel>",
         "<title>Tech Curated Top 30</title>",
         f"<link>{escape(config.SITE_BASE_URL)}</link>",
-        f"<atom:link href=\"{escape(feed_url)}\" rel=\"self\" type=\"application/rss+xml\" />",
+        f'<atom:link href="{escape(feed_url)}" rel="self" type="application/rss+xml" />',
         "<description>Ranked top technical articles</description>",
         f"<lastBuildDate>{now_str}</lastBuildDate>",
         "<language>ja</language>",
@@ -43,43 +76,52 @@ def build_rss(articles: list[RankedArticle]) -> str:
         # still include the original publication date inside the description.
         pub_dt = now_dt - timedelta(seconds=i)
         pub = format_datetime(pub_dt)
-        
+
         # Add rank and score to title for clarity.
         # Place it at the end to avoid some readers' similarity/duplicate heuristics
         # collapsing items that share a common prefix.
         title_with_score = f"{a.title} [#{i} Score:{a.total}]"
-        
+
         # Include original publication date in description
-        original_date_str = a.published_at.strftime('%Y-%m-%d %H:%M')
-        
+        original_date_str = a.published_at.strftime("%Y-%m-%d %H:%M")
+
         # Use HTML for description to ensure proper formatting in RSS readers
         summary_html = f"<p>{escape(a.summary)}</p>" if a.summary else ""
         reason_html = f"<p><strong>Reason:</strong> {escape(a.scores.reason)}</p>"
-        
+
         score_detail = (
             f"Tech: N={a.scores.novelty}/I={a.scores.interest}/E={a.scores.expertise}, "
             f"Culture: C={a.scores.cultural_relevance}/L={a.scores.lifestyle_connection}/Cr={a.scores.creativity}"
         )
-        score_html = f"<p><strong>Score: {a.total}</strong> <small>({score_detail})</small></p>"
-        
-        excerpt_html = f"<p><strong>Excerpt:</strong> {escape(a.excerpt)}</p>" if a.excerpt else ""
-        original_date_html = f"<p><small>Original PubDate: {original_date_str}</small></p>"
+        score_html = (
+            f"<p><strong>Score: {a.total}</strong> <small>({score_detail})</small></p>"
+        )
+
+        excerpt_html = (
+            f"<p><strong>Excerpt:</strong> {escape(a.excerpt)}</p>" if a.excerpt else ""
+        )
+        original_date_html = (
+            f"<p><small>Original PubDate: {original_date_str}</small></p>"
+        )
 
         original_url_str = str(a.url)
-        original_url_html = f"<p><small>Original URL: {escape(original_url_str)}</small></p>"
+        public_url_str = _safe_public_link(original_url_str)
+        original_url_html = (
+            f"<p><small>Original URL: {escape(public_url_str)}</small></p>"
+        )
 
         # Combine into a CDATA block for the description
         description_content = f"{summary_html}{reason_html}{score_html}{excerpt_html}{original_date_html}{original_url_html}"
 
-        item_link = _decorate_item_link(original_url_str, guid=a.id)
-        
+        item_link = _decorate_item_link(public_url_str, guid=a.id)
+
         item_parts = [
             "<item>",
             f"<title>{escape(title_with_score)}</title>",
             f"<link>{escape(item_link)}</link>",
-            f"<guid isPermaLink=\"false\">{escape(a.id)}</guid>",
+            f'<guid isPermaLink="false">{escape(a.id)}</guid>',
             f"<pubDate>{pub}</pubDate>",
-            f"<description><![CDATA[{description_content}]]></description>",
+            f"<description><![CDATA[{_safe_cdata(description_content)}]]></description>",
             f"<category>Score:{a.total}</category>",
             "</item>",
         ]
