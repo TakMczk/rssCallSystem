@@ -55,16 +55,26 @@ def filter_recent_articles(articles: list[Article], hours: int) -> list[Article]
 
 async def run():
     logger.info("start pipeline")
+    out_path = Path(config.OUTPUT_RSS_PATH)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     raw = await fetch_all_feeds(config.FEED_URLS)
     logger.info(f"fetched raw items: {len(raw)}")
     articles = normalize(raw)
     logger.info(f"normalized unique items: {len(articles)}")
+    pre_filter_count = len(articles)
 
     # Filter articles to only those published within the configured time window
     articles = filter_recent_articles(articles, config.TIME_WINDOW_HOURS)
 
     if not articles:
         logger.warning("no articles found within the time window")
+        if pre_filter_count > 0:
+            out_path.write_text(build_rss([]), encoding="utf-8")
+            logger.info(f"wrote rss: {out_path} (0 items)")
+        else:
+            logger.warning(
+                "skipping rss overwrite because fetch/normalize produced no items"
+            )
         return
 
     scores = await score_articles(articles)
@@ -73,8 +83,6 @@ async def run():
         ranked.append(RankedArticle(**a.model_dump(), scores=s))
     ranked_sorted = sort_ranked(ranked)[: config.TOP_N]
     rss_xml = build_rss(ranked_sorted)
-    out_path = Path(config.OUTPUT_RSS_PATH)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(rss_xml, encoding="utf-8")
     logger.info(f"wrote rss: {out_path} ({len(ranked_sorted)} items)")
 

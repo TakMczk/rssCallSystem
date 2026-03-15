@@ -1,3 +1,4 @@
+import asyncio
 import os
 import sys
 from datetime import datetime, timedelta, timezone
@@ -5,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.fetcher import _DEF_PUB_DT
+from src import config, main
 from src.main import filter_recent_articles
 from src.models import Article
 
@@ -90,3 +92,57 @@ def test_filter_recent_articles_does_not_revive_too_old_articles():
     filtered = filter_recent_articles(articles, hours=24)
 
     assert filtered == []
+
+
+def test_run_rewrites_output_with_empty_feed_when_no_recent_articles(
+    monkeypatch, tmp_path
+):
+    output_path = tmp_path / "rss.xml"
+    output_path.write_text("stale feed", encoding="utf-8")
+    monkeypatch.setattr(config, "OUTPUT_RSS_PATH", str(output_path), raising=False)
+    monkeypatch.setattr(
+        config, "FEED_URLS", ["https://example.com/feed"], raising=False
+    )
+
+    async def fake_fetch_all_feeds(urls):
+        return ["raw-item"]
+
+    monkeypatch.setattr(main, "fetch_all_feeds", fake_fetch_all_feeds)
+    monkeypatch.setattr(
+        main,
+        "normalize",
+        lambda raw: [
+            make_article(
+                "too-old",
+                published_at=datetime.now(timezone.utc) - timedelta(days=5),
+            )
+        ],
+    )
+
+    asyncio.run(main.run())
+
+    xml = output_path.read_text(encoding="utf-8")
+    assert "stale feed" not in xml
+    assert "<rss" in xml
+    assert "<item>" not in xml
+
+
+def test_run_preserves_previous_output_when_fetch_and_normalize_produce_no_items(
+    monkeypatch, tmp_path
+):
+    output_path = tmp_path / "rss.xml"
+    output_path.write_text("stale feed", encoding="utf-8")
+    monkeypatch.setattr(config, "OUTPUT_RSS_PATH", str(output_path), raising=False)
+    monkeypatch.setattr(
+        config, "FEED_URLS", ["https://example.com/feed"], raising=False
+    )
+
+    async def fake_fetch_all_feeds(urls):
+        return []
+
+    monkeypatch.setattr(main, "fetch_all_feeds", fake_fetch_all_feeds)
+    monkeypatch.setattr(main, "normalize", lambda raw: [])
+
+    asyncio.run(main.run())
+
+    assert output_path.read_text(encoding="utf-8") == "stale feed"
