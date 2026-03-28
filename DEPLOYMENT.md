@@ -1,6 +1,6 @@
 ## デプロイ & 運用手順
 
-このリポジトリを GitHub 上で「定期 (07:00/17:00 JST) に OpenAI API (GPT-5-nano) でスコアリングし、`docs/rss.xml` を GitHub Pages で公開」するための具体手順です。
+このリポジトリを GitHub 上で「定期実行で OpenAI API (GPT-5-nano) による評価を行い、`docs/rss.xml` と `docs/data.json` を更新し、`docs/` を GitHub Pages で公開」するための具体手順です。
 
 ### 1. リポジトリ要件
 
@@ -49,12 +49,13 @@ gh api -X POST repos/:owner/:repo/pages \
 ### 4. 初回動作確認
 
 1. 手動ワークフロー起動: Actions > Update Curated RSS > Run workflow
-2. 実行成功後 commit 差分に `docs/rss.xml` 更新が含まれる
+2. 実行成功後 commit 差分に `docs/rss.xml` と `docs/data.json` の更新が含まれる
 3. 公開 URL `https://<your-account>.github.io/rssCallSystem/rss.xml` にアクセスし XML が取得できる
+4. 公開トップ `https://<your-account>.github.io/rssCallSystem/` にアクセスし、カード UI が表示される
 
 ### 5. cron スケジュール
 
-`update_rss.yml` の cron: `0 22,8 * * *` (UTC) → JST 07:00 / 17:00
+`update_rss.yml` の cron: `0 22 * * *` (UTC) → JST 07:00
 変更する場合はファイル編集し commit。
 
 ### 6. 失敗時トラブルシュート
@@ -65,6 +66,7 @@ gh api -X POST repos/:owner/:repo/pages \
 | temperature エラー | モデルパラメータ | GPT-5-nanoでは非対応 |
 | 空のレスポンス | reasoning_effort | `"minimal"` 設定確認 |
 | RSS 生成なし | ワークフローログ | fetch/score ログ確認 |
+| Web UI は出るが記事が空 | `docs/data.json` の有無 | `src.main` 実行ログと commit 差分確認 |
 | 日本時間がずれる | cron 式 | UTC であるか再確認 |
 
 ### 7. ローカル簡易検証
@@ -74,6 +76,20 @@ gh api -X POST repos/:owner/:repo/pages \
 ```
 
 (事前に `chmod +x scripts/*.sh`)
+
+Web UI を更新した場合は追加で:
+
+```bash
+cd web
+npm install
+npm run build:pages
+```
+
+注意:
+
+- `web/` を変更した場合は、`docs/index.html` と `docs/assets/**` も一緒に commit / push する
+- 定期実行ワークフローは `docs/rss.xml` と `docs/data.json` の更新が中心で、フロントエンド再ビルドを毎回行う前提ではない
+- そのため、UI の見た目や実装を変更したときはローカルで `npm run build:pages` を実行してからデプロイする
 
 ### 8. セキュリティ留意
 

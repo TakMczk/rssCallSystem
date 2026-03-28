@@ -5,6 +5,7 @@ from datetime import datetime, timezone, timedelta
 
 from . import config
 from .fetcher import _DEF_PUB_DT, fetch_all_feeds, normalize
+from .json_builder import build_json_feed
 from .scorer import score_articles
 from .ranking import sort_ranked
 from .rss_builder import build_rss
@@ -56,7 +57,9 @@ def filter_recent_articles(articles: list[Article], hours: int) -> list[Article]
 async def run():
     logger.info("start pipeline")
     out_path = Path(config.OUTPUT_RSS_PATH)
+    json_path = Path(config.OUTPUT_JSON_PATH)
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    json_path.parent.mkdir(parents=True, exist_ok=True)
     raw = await fetch_all_feeds(config.FEED_URLS)
     logger.info(f"fetched raw items: {len(raw)}")
     articles = normalize(raw)
@@ -69,11 +72,14 @@ async def run():
     if not articles:
         logger.warning("no articles found within the time window")
         if pre_filter_count > 0:
+            generated_at = datetime.now(timezone.utc)
             out_path.write_text(build_rss([]), encoding="utf-8")
+            json_path.write_text(build_json_feed([], generated_at=generated_at), encoding="utf-8")
             logger.info(f"wrote rss: {out_path} (0 items)")
+            logger.info(f"wrote json: {json_path} (0 items)")
         else:
             logger.warning(
-                "skipping rss overwrite because fetch/normalize produced no items"
+                "skipping outputs overwrite because fetch/normalize produced no items"
             )
         return
 
@@ -82,9 +88,13 @@ async def run():
     for a, s in zip(articles, scores):
         ranked.append(RankedArticle(**a.model_dump(), scores=s))
     ranked_sorted = sort_ranked(ranked)[: config.TOP_N]
+    generated_at = datetime.now(timezone.utc)
     rss_xml = build_rss(ranked_sorted)
+    json_text = build_json_feed(ranked_sorted, generated_at=generated_at)
     out_path.write_text(rss_xml, encoding="utf-8")
+    json_path.write_text(json_text, encoding="utf-8")
     logger.info(f"wrote rss: {out_path} ({len(ranked_sorted)} items)")
+    logger.info(f"wrote json: {json_path} ({len(ranked_sorted)} items)")
 
 
 if __name__ == "__main__":

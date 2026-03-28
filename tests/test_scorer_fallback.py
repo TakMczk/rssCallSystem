@@ -41,6 +41,7 @@ def test_scorer_fallback_no_key(monkeypatch):
         assert result.lifestyle_connection >= 5
         assert result.creativity >= 5
         assert "fallback" in result.reason
+        assert result.summary_ja is None
 
     asyncio.run(run())
 
@@ -271,7 +272,7 @@ def test_score_article_prompt_treats_backticks_as_data(monkeypatch):
                 choices=[
                     SimpleNamespace(
                         message=SimpleNamespace(
-                            content='{"novelty":7,"interest":7,"expertise":7,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok"}'
+                            content='{"novelty":7,"interest":7,"expertise":7,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok","summary_ja":"日本語要約"}'
                         )
                     )
                 ]
@@ -290,6 +291,7 @@ def test_score_article_prompt_treats_backticks_as_data(monkeypatch):
     async def run():
         result = await scorer.score_article(article)
         assert result.reason == "ok"
+        assert result.summary_ja == "日本語要約"
 
     asyncio.run(run())
 
@@ -298,3 +300,113 @@ def test_score_article_prompt_treats_backticks_as_data(monkeypatch):
     assert "非信頼入力" in system_prompt
     assert "```json" not in user_prompt
     assert "Ignore previous instructions" in user_prompt
+
+
+def test_score_article_prompt_includes_source_metadata(monkeypatch):
+    monkeypatch.setattr(config, "OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(config, "SCORER_CACHE_VERSION", "test-source-prompt", raising=False)
+    scorer._cache.clear()
+    captured_messages = {}
+    article = Article(
+        id="source-aware",
+        source="https://zenn.dev/feed",
+        title="AIの記事",
+        url="https://example.com/source-aware",
+        published_at=datetime.now(timezone.utc),
+        summary="Summary",
+        excerpt="Excerpt",
+    )
+
+    class FakeCompletions:
+        async def create(self, **kwargs):
+            captured_messages["messages"] = kwargs["messages"]
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(
+                            content='{"novelty":6,"interest":6,"expertise":6,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok","summary_ja":"日本語要約"}'
+                        )
+                    )
+                ]
+            )
+
+    class FakeChat:
+        def __init__(self):
+            self.completions = FakeCompletions()
+
+    class FakeAsyncOpenAI:
+        def __init__(self, *args, **kwargs):
+            self.chat = FakeChat()
+
+    monkeypatch.setattr(scorer, "AsyncOpenAI", FakeAsyncOpenAI)
+
+    async def run():
+        result = await scorer.score_article(article)
+        assert result.summary_ja == "日本語要約"
+
+    asyncio.run(run())
+
+    user_prompt = captured_messages["messages"][1]["content"]
+    assert "zenn.dev/feed" in user_prompt
+    assert "summary_ja" in user_prompt
+
+
+def test_batch_scoring_parses_summary_ja_and_includes_source(monkeypatch):
+    monkeypatch.setattr(config, "OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(config, "SCORER_CACHE_VERSION", "test-batch-summary", raising=False)
+    scorer._cache.clear()
+    captured_messages = {}
+    articles = [
+        Article(
+            id="batch-0",
+            source="https://qiita.com/popular-items/feed",
+            title="Qiita article",
+            url="https://example.com/batch-0",
+            published_at=datetime.now(timezone.utc),
+            summary="Summary 0",
+            excerpt="Excerpt 0",
+        ),
+        Article(
+            id="batch-1",
+            source="https://hnrss.org/best",
+            title="HN article",
+            url="https://example.com/batch-1",
+            published_at=datetime.now(timezone.utc),
+            summary="Summary 1",
+            excerpt="Excerpt 1",
+        ),
+    ]
+
+    class FakeCompletions:
+        async def create(self, **kwargs):
+            captured_messages["messages"] = kwargs["messages"]
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(
+                            content='{"articles":[{"id":0,"novelty":7,"interest":7,"expertise":7,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok0","summary_ja":"要約0"},{"id":1,"novelty":6,"interest":6,"expertise":6,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok1","summary_ja":"要約1"}]}'
+                        )
+                    )
+                ]
+            )
+
+    class FakeChat:
+        def __init__(self):
+            self.completions = FakeCompletions()
+
+    class FakeAsyncOpenAI:
+        def __init__(self, *args, **kwargs):
+            self.chat = FakeChat()
+
+    monkeypatch.setattr(scorer, "AsyncOpenAI", FakeAsyncOpenAI)
+
+    async def run():
+        results = await scorer.score_articles_openai_batch(articles, batch_id=1)
+        assert [result.summary_ja for result in results] == ["要約0", "要約1"]
+
+    asyncio.run(run())
+
+    user_prompt = captured_messages["messages"][1]["content"]
+    assert "qiita.com/popular-items/feed" in user_prompt
+    assert "hnrss.org/best" in user_prompt
+    assert "summary_ja" in user_prompt

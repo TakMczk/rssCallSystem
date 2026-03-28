@@ -11,6 +11,10 @@ FEED_URLS: List[str] = [
     "https://codezine.jp/rss/new/20/index.xml",
     "https://qiita.com/popular-items/feed",
     "https://www.publickey1.jp/atom.xml",
+    "https://hnrss.org/best",
+    "https://lobste.rs/rss",
+    "https://feeds.arstechnica.com/arstechnica/index",
+    "https://www.theverge.com/rss/index.xml",
     "https://www.technologyreview.jp/feed/",
     "https://feeds.japan.zdnet.com/rss/zdnet/all.rdf",
     "https://wirelesswire.jp/feed/",
@@ -34,6 +38,7 @@ RETRY_MAX: int = 2
 MAX_SCORE_RETRY: int = 3  # Increase retry attempts
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 OUTPUT_RSS_PATH: str = os.getenv("OUTPUT_RSS_PATH", "docs/rss.xml")
+OUTPUT_JSON_PATH: str = os.getenv("OUTPUT_JSON_PATH", "docs/data.json")
 CACHE_DIR: str = os.getenv("CACHE_DIR", ".cache")
 SCORE_CONCURRENCY: int = 2  # Reduce concurrent requests to avoid rate limits
 RATE_LIMIT_DELAY: float = 2.0  # Base delay for rate limit handling
@@ -60,7 +65,7 @@ RANKING_FRESHNESS_MAX_BONUS: float = float(
 RANKING_SOURCE_REPEAT_PENALTY: float = float(
     os.getenv("RANKING_SOURCE_REPEAT_PENALTY", "1.5")
 )
-SCORER_CACHE_VERSION: str = os.getenv("SCORER_CACHE_VERSION", "v2")
+SCORER_CACHE_VERSION: str = os.getenv("SCORER_CACHE_VERSION", "v3")
 
 # Some RSS readers (and Inoreader's optional "duplicate filters") can hide items
 # if they consider them duplicates across feeds/folders/account. When enabled,
