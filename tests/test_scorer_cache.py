@@ -30,7 +30,7 @@ def make_article(
     )
 
 
-def make_score(reason: str) -> ScoreResult:
+def make_score(reason: str, summary_ja: str = "要約") -> ScoreResult:
     return ScoreResult(
         novelty=6,
         interest=6,
@@ -39,6 +39,7 @@ def make_score(reason: str) -> ScoreResult:
         lifestyle_connection=5,
         creativity=5,
         reason=reason,
+        summary_ja=summary_ja,
     )
 
 
@@ -96,6 +97,7 @@ def test_score_article_reuses_cache_when_version_matches(monkeypatch, tmp_path):
     second = asyncio.run(scorer.score_article(article))
 
     assert second.reason == "cached:v1"
+    assert second.summary_ja == "要約"
 
 
 def test_score_articles_reuses_cached_results_in_batch_mode(monkeypatch, tmp_path):
@@ -153,6 +155,7 @@ def test_score_article_reuses_cache_across_title_changes_when_url_matches(
     second = asyncio.run(scorer.score_article(second_article))
 
     assert second.reason == "cached:title-variant-1"
+    assert second.summary_ja == "要約"
 
 
 def test_score_article_invalidates_cache_when_content_changes_for_same_url(

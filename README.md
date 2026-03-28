@@ -1,6 +1,6 @@
 # RSS Call System
 
-技術記事を自動収集し、AI（GPT-5-nano）で評価・ランキングしてRSSフィードを生成するシステムです。
+技術記事を自動収集し、AI（GPT-5-nano）で評価・ランキングして RSS フィードと Web UI 用データを生成するシステムです。
 
 ## 特徴
 
@@ -8,6 +8,7 @@
 - 💰 **低コスト**: gpt-4o-miniから67%コスト削減
 - 🎯 **高品質**: 6次元スコアリング（新規性、興味性、専門性、文化関連性、生活接続性、創造性）
 - 🧭 **ハイブリッド順位づけ**: LLM総合点に鮮度ボーナスとソース多様性ペナルティを加味
+- 🗂️ **Web UI**: Material UI ベースのカード表示で、要約・スコア・評価理由を一覧化
 - 📊 **バッチ処理**: BATCH_SIZE=20で効率的なAPI呼び出し
 - 🔄 **キャッシング**: スコア結果をキャッシュして重複処理を削減
 
@@ -19,8 +20,13 @@ src/
 ├── fetcher.py        # RSS記事取得
 ├── scorer.py         # AI評価（GPT-5-nano）
 ├── ranking.py        # ランキング生成
+├── json_builder.py   # Web UI 向け JSON 構築
 ├── rss_builder.py    # RSS構築
 └── main.py          # メインエントリーポイント
+
+web/
+├── src/             # React + TypeScript + MUI フロントエンド
+└── dist/            # Vite ビルド出力（docs/ へ同期）
 ```
 
 ## 必要要件
@@ -41,6 +47,7 @@ cd rssCallSystem
 
 ```bash
 pip install -r requirements.txt
+cd web && npm install
 ```
 
 ### 3. 環境変数の設定
@@ -88,7 +95,11 @@ find . -name '*.pyc' -delete && find . -name '__pycache__' -type d -exec rm -rf 
 
 ### 出力
 
-生成されたRSSフィードは `docs/rss.xml` に保存されます。
+生成物は以下に保存されます。
+
+- `docs/rss.xml` - RSS フィード
+- `docs/data.json` - Web UI 用データ
+- `docs/index.html`, `docs/assets/**` - Web UI
 
 ## 既定の収集フィード
 
@@ -98,6 +109,10 @@ find . -name '*.pyc' -delete && find . -name '__pycache__' -type d -exec rm -rf 
 - `https://codezine.jp/rss/new/20/index.xml`
 - `https://qiita.com/popular-items/feed`
 - `https://www.publickey1.jp/atom.xml`
+- `https://hnrss.org/best`
+- `https://lobste.rs/rss`
+- `https://feeds.arstechnica.com/arstechnica/index`
+- `https://www.theverge.com/rss/index.xml`
 - `https://www.technologyreview.jp/feed/`
 - `https://feeds.japan.zdnet.com/rss/zdnet/all.rdf`
 - `https://wirelesswire.jp/feed/`
@@ -183,14 +198,35 @@ Output: 2500 × $0.40/1M = $0.001
 
 ```bash
 # 全テストの実行
-python -m pytest tests/ -v
+./.venv/bin/python -m pytest -q
 
 # 特定のテストの実行
 python -m pytest tests/test_ranking.py -v
 
+# フロントエンドのビルド
+cd web && npm run build
+
 # 統合テスト
 python test_integrated.py
 ```
+
+## Web UI のビルド
+
+フロントエンドを変更したときは `web/` でビルドし、`docs/` へ同期します。
+
+```bash
+cd web
+npm run build:pages
+```
+
+このコマンドは `web/dist` を生成したあと、`docs/index.html` と `docs/assets/**` のみを更新します。`docs/rss.xml`、`docs/data.json`、`docs/images/**`、`docs/*.md` は保持されます。
+
+### 注意事項
+
+- **`web/` を変更した場合**は、push 前に必ず `cd web && npm run build:pages` を実行してください
+- `main` / `docs` 配信なので、**生成済みの `docs/index.html` と `docs/assets/**` もコミット対象**です
+- 定期 GitHub Actions は RSS / JSON 更新が主目的で、**フロントエンドの再ビルド前提ではありません**
+- Python 側だけを変更した場合は、通常どおり `python -m src.main` による `docs/rss.xml` / `docs/data.json` 更新で運用できます
 
 ## アーキテクチャの特徴
 

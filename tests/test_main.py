@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import sys
 from datetime import datetime, timedelta, timezone
@@ -8,7 +9,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from src.fetcher import _DEF_PUB_DT
 from src import config, main
 from src.main import filter_recent_articles
-from src.models import Article
+from src.models import Article, ScoreResult
 
 
 def make_article(
@@ -98,8 +99,11 @@ def test_run_rewrites_output_with_empty_feed_when_no_recent_articles(
     monkeypatch, tmp_path
 ):
     output_path = tmp_path / "rss.xml"
+    json_path = tmp_path / "data.json"
+    json_path.write_text('{"stale": true}', encoding="utf-8")
     output_path.write_text("stale feed", encoding="utf-8")
     monkeypatch.setattr(config, "OUTPUT_RSS_PATH", str(output_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_JSON_PATH", str(json_path), raising=False)
     monkeypatch.setattr(
         config, "FEED_URLS", ["https://example.com/feed"], raising=False
     )
@@ -125,14 +129,20 @@ def test_run_rewrites_output_with_empty_feed_when_no_recent_articles(
     assert "stale feed" not in xml
     assert "<rss" in xml
     assert "<item>" not in xml
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    assert payload["schemaVersion"] == "1.0"
+    assert payload["articles"] == []
 
 
 def test_run_preserves_previous_output_when_fetch_and_normalize_produce_no_items(
     monkeypatch, tmp_path
 ):
     output_path = tmp_path / "rss.xml"
+    json_path = tmp_path / "data.json"
+    json_path.write_text('{"stale": true}', encoding="utf-8")
     output_path.write_text("stale feed", encoding="utf-8")
     monkeypatch.setattr(config, "OUTPUT_RSS_PATH", str(output_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_JSON_PATH", str(json_path), raising=False)
     monkeypatch.setattr(
         config, "FEED_URLS", ["https://example.com/feed"], raising=False
     )
@@ -146,3 +156,115 @@ def test_run_preserves_previous_output_when_fetch_and_normalize_produce_no_items
     asyncio.run(main.run())
 
     assert output_path.read_text(encoding="utf-8") == "stale feed"
+    assert json_path.read_text(encoding="utf-8") == '{"stale": true}'
+
+
+def test_run_writes_json_output_for_ranked_articles(monkeypatch, tmp_path):
+    output_path = tmp_path / "rss.xml"
+    json_path = tmp_path / "data.json"
+    monkeypatch.setattr(config, "OUTPUT_RSS_PATH", str(output_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_JSON_PATH", str(json_path), raising=False)
+    monkeypatch.setattr(
+        config, "FEED_URLS", ["https://example.com/feed"], raising=False
+    )
+    monkeypatch.setattr(config, "TOP_N", 5, raising=False)
+
+    article = make_article(
+        "recent",
+        published_at=datetime.now(timezone.utc) - timedelta(hours=1),
+        freshness_at=datetime.now(timezone.utc) - timedelta(minutes=30),
+    ).model_copy(update={"source": "https://hnrss.org/best"})
+
+    async def fake_fetch_all_feeds(urls):
+        return ["raw-item"]
+
+    async def fake_score_articles(articles):
+        return [
+            ScoreResult(
+                novelty=8,
+                interest=7,
+                expertise=7,
+                cultural_relevance=5,
+                lifestyle_connection=4,
+                creativity=4,
+                reason="興味深い比較記事",
+                summary_ja="英語記事の要点を日本語で要約",
+            )
+        ]
+
+    async def passthrough_ranked_summaries(ranked):
+        return ranked
+
+    monkeypatch.setattr(main, "fetch_all_feeds", fake_fetch_all_feeds)
+    monkeypatch.setattr(main, "normalize", lambda raw: [article])
+    monkeypatch.setattr(main, "score_articles", fake_score_articles)
+    monkeypatch.setattr(main, "sort_ranked", lambda ranked: ranked)
+    monkeypatch.setattr(main, "ensure_ranked_summaries", passthrough_ranked_summaries)
+
+    asyncio.run(main.run())
+
+    assert output_path.exists()
+    assert json_path.exists()
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    assert payload["schemaVersion"] == "1.0"
+    assert len(payload["articles"]) == 1
+    first = payload["articles"][0]
+    assert first["title"] == article.title
+    assert first["source"] == article.source
+    assert first["summaryJa"] == "英語記事の要点を日本語で要約"
+    assert first["scores"]["total"] > 0
+
+
+def test_run_rewrites_top_ranked_summaries_before_writing(monkeypatch, tmp_path):
+    output_path = tmp_path / "rss.xml"
+    json_path = tmp_path / "data.json"
+    monkeypatch.setattr(config, "OUTPUT_RSS_PATH", str(output_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_JSON_PATH", str(json_path), raising=False)
+    monkeypatch.setattr(
+        config, "FEED_URLS", ["https://example.com/feed"], raising=False
+    )
+
+    article = make_article(
+        "recent",
+        published_at=datetime.now(timezone.utc) - timedelta(hours=1),
+        freshness_at=datetime.now(timezone.utc) - timedelta(minutes=30),
+    )
+
+    async def fake_fetch_all_feeds(urls):
+        return ["raw-item"]
+
+    async def fake_score_articles(articles):
+        return [
+            ScoreResult(
+                novelty=8,
+                interest=7,
+                expertise=7,
+                cultural_relevance=5,
+                lifestyle_connection=4,
+                creativity=4,
+                reason="興味深い比較記事",
+                summary_ja="短い要約",
+            )
+        ]
+
+    async def fake_ensure_ranked_summaries(ranked):
+        return [
+            ranked[0].model_copy(
+                update={
+                    "scores": ranked[0].scores.model_copy(
+                        update={"summary_ja": "長めのエグゼクティブサマリー" * 10}
+                    )
+                }
+            )
+        ]
+
+    monkeypatch.setattr(main, "fetch_all_feeds", fake_fetch_all_feeds)
+    monkeypatch.setattr(main, "normalize", lambda raw: [article])
+    monkeypatch.setattr(main, "score_articles", fake_score_articles)
+    monkeypatch.setattr(main, "sort_ranked", lambda ranked: ranked)
+    monkeypatch.setattr(main, "ensure_ranked_summaries", fake_ensure_ranked_summaries)
+
+    asyncio.run(main.run())
+
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    assert payload["articles"][0]["summaryJa"].startswith("長めのエグゼクティブサマリー")

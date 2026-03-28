@@ -37,6 +37,7 @@ class ScoreResult(BaseModel):
     creativity: int  # 創造性・芸術性 0-10
 
     reason: str
+    summary_ja: Optional[str] = None
 
     @property
     def total(self) -> int:
