@@ -26,6 +26,7 @@ def build_json_feed(
                 "rank": index,
                 "id": article.id,
                 "title": article.title,
+                "titleJa": article.scores.title_ja,
                 "url": str(article.url),
                 "source": article.source,
                 "publishedAt": _isoformat_z(article.published_at),

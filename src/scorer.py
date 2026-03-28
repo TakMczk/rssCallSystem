@@ -39,6 +39,8 @@ def _load_rules_prompt() -> str:
 _RULES_PROMPT = _load_rules_prompt()
 SUMMARY_MIN_CHARS = 160
 SUMMARY_MAX_CHARS = 240
+TITLE_MAX_CHARS = 140
+_JAPANESE_CHAR_RE = re.compile(r"[ぁ-ゟァ-ヿ一-龯々]")
 
 # Templates
 PROMPT_TEMPLATE = """{rules_prompt}
@@ -49,9 +51,10 @@ PROMPT_TEMPLATE = """{rules_prompt}
 文化面: cultural_relevance(文化的関連性), lifestyle_connection(生活との接点), creativity(創造性・芸術性)
 summary_ja には 160〜240文字程度の日本語要約を入れてください。英語記事でも必ず日本語で要約してください。
 summary_ja はエグゼクティブ・サマリー形式で、結論→価値→読むべき理由が短く分かるようにしてください。
+title_ja には Web 表示用の日本語タイトルを入れてください。英語タイトルは自然な日本語タイトルに翻訳し、日本語タイトルは元の表現を保って構いません。
 JSON形式で出力してください。
 出力 JSON:
-{{"novelty":0-10,"interest":0-10,"expertise":0-10,"cultural_relevance":0-10,"lifestyle_connection":0-10,"creativity":0-10,"reason":"100文字以内","summary_ja":"日本語要約"}}
+{{"novelty":0-10,"interest":0-10,"expertise":0-10,"cultural_relevance":0-10,"lifestyle_connection":0-10,"creativity":0-10,"reason":"100文字以内","summary_ja":"日本語要約","title_ja":"日本語タイトル"}}
 
 記事データ(JSON):
 {article_json}
@@ -65,9 +68,10 @@ BATCH_PROMPT_TEMPLATE = """{rules_prompt}
 文化面: cultural_relevance(文化的関連性), lifestyle_connection(生活との接点), creativity(創造性・芸術性)
 summary_ja には 160〜240文字程度の日本語要約を入れてください。英語記事でも必ず日本語で要約してください。
 summary_ja はエグゼクティブ・サマリー形式で、結論→価値→読むべき理由が短く分かるようにしてください。
-各記事に id, novelty, interest, expertise, cultural_relevance, lifestyle_connection, creativity, reason, summary_ja を含む JSON を返してください。
+title_ja には Web 表示用の日本語タイトルを入れてください。英語タイトルは自然な日本語タイトルに翻訳し、日本語タイトルは元の表現を保って構いません。
+各記事に id, novelty, interest, expertise, cultural_relevance, lifestyle_connection, creativity, reason, summary_ja, title_ja を含む JSON を返してください。
 出力形式:
-{{"articles":[{{"id":0,"novelty":0-10,"interest":0-10,"expertise":0-10,"cultural_relevance":0-10,"lifestyle_connection":0-10,"creativity":0-10,"reason":"100文字以内","summary_ja":"日本語要約"}}]}}
+{{"articles":[{{"id":0,"novelty":0-10,"interest":0-10,"expertise":0-10,"cultural_relevance":0-10,"lifestyle_connection":0-10,"creativity":0-10,"reason":"100文字以内","summary_ja":"日本語要約","title_ja":"日本語タイトル"}}]}}
 
 記事一覧(JSON):
 {articles_json}
@@ -98,6 +102,34 @@ SUMMARY_BATCH_PROMPT_TEMPLATE = """{rules_prompt}
 - reason や点数は出力しない
 出力形式:
 {{"articles":[{{"id":0,"summary_ja":"日本語要約"}}]}}
+
+記事一覧(JSON):
+{articles_json}
+"""
+
+TITLE_TRANSLATION_PROMPT_TEMPLATE = """{rules_prompt}
+
+以下の記事について、title_ja だけを再生成してください。
+- title_ja は Web 表示用の自然な日本語タイトルにする
+- 英語タイトルは意味を保って簡潔な日本語タイトルへ翻訳する
+- 日本語タイトルは元の表現を維持してよい
+- reason や点数、summary_ja は出力しない
+出力 JSON:
+{{"title_ja":"日本語タイトル"}}
+
+記事データ(JSON):
+{article_json}
+"""
+
+TITLE_TRANSLATION_BATCH_PROMPT_TEMPLATE = """{rules_prompt}
+
+以下の記事一覧について、title_ja だけを再生成してください。
+- title_ja は Web 表示用の自然な日本語タイトルにする
+- 英語タイトルは意味を保って簡潔な日本語タイトルへ翻訳する
+- 日本語タイトルは元の表現を維持してよい
+- reason や点数、summary_ja は出力しない
+出力形式:
+{{"articles":[{{"id":0,"title_ja":"日本語タイトル"}}]}}
 
 記事一覧(JSON):
 {articles_json}
@@ -201,6 +233,21 @@ def _summary_refresh_prompt_payload(articles: List[RankedArticle]) -> str:
             "summary": article.summary[:600],
             "excerpt": article.excerpt[:600],
             "current_summary_ja": article.scores.summary_ja,
+        }
+        for index, article in enumerate(articles)
+    ]
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def _title_refresh_prompt_payload(articles: List[RankedArticle]) -> str:
+    payload = [
+        {
+            "id": index,
+            "source": article.source,
+            "title": article.title,
+            "summary": article.summary[:400],
+            "excerpt": article.excerpt[:400],
+            "summary_ja": article.scores.summary_ja,
         }
         for index, article in enumerate(articles)
     ]
@@ -325,6 +372,7 @@ def _generate_heuristic_score(article: Article) -> ScoreResult:
         creativity=creativity,
         reason="fallback:heuristic_v2",
         summary_ja=None,
+        title_ja=article.title if _looks_japanese(article.title) else None,
     )
 
 
@@ -348,6 +396,10 @@ def _validate_score(score: int) -> bool:
     return 0 <= score <= 10
 
 
+def _looks_japanese(value: str) -> bool:
+    return bool(_JAPANESE_CHAR_RE.search(value))
+
+
 def _normalize_summary_ja(value: Any) -> str | None:
     if value is None:
         return None
@@ -355,11 +407,25 @@ def _normalize_summary_ja(value: Any) -> str | None:
     return text[:SUMMARY_MAX_CHARS] if text else None
 
 
+def _normalize_title_ja(value: Any, article_title: str) -> str | None:
+    original_title = re.sub(r"\s+", " ", article_title).strip()
+    if not original_title:
+        return None
+    if _looks_japanese(original_title):
+        return original_title[:TITLE_MAX_CHARS]
+    if value is None:
+        return None
+    text = re.sub(r"\s+", " ", str(value)).strip()
+    if not text or not _looks_japanese(text):
+        return None
+    return text[:TITLE_MAX_CHARS]
+
+
 def _summary_is_in_target_range(value: str | None) -> bool:
     return value is not None and SUMMARY_MIN_CHARS <= len(value.strip()) <= SUMMARY_MAX_CHARS
 
 
-def _build_score_result(data: dict[str, Any]) -> ScoreResult | None:
+def _build_score_result(data: dict[str, Any], *, article_title: str) -> ScoreResult | None:
     scores = {
         "novelty": int(data.get("novelty", 5)),
         "interest": int(data.get("interest", 5)),
@@ -374,6 +440,7 @@ def _build_score_result(data: dict[str, Any]) -> ScoreResult | None:
         **scores,
         reason=str(data.get("reason", ""))[:120],
         summary_ja=_normalize_summary_ja(data.get("summary_ja")),
+        title_ja=_normalize_title_ja(data.get("title_ja"), article_title),
     )
 
 
@@ -381,8 +448,16 @@ def _replace_summary(score: ScoreResult, summary_ja: str) -> ScoreResult:
     return score.model_copy(update={"summary_ja": summary_ja})
 
 
+def _replace_title(score: ScoreResult, title_ja: str) -> ScoreResult:
+    return score.model_copy(update={"title_ja": title_ja})
+
+
 def _replace_ranked_summary(article: RankedArticle, summary_ja: str) -> RankedArticle:
     return article.model_copy(update={"scores": _replace_summary(article.scores, summary_ja)})
+
+
+def _replace_ranked_title(article: RankedArticle, title_ja: str) -> RankedArticle:
+    return article.model_copy(update={"scores": _replace_title(article.scores, title_ja)})
 
 
 def _expand_summary_ja_locally(article: RankedArticle) -> str | None:
@@ -397,7 +472,7 @@ def _expand_summary_ja_locally(article: RankedArticle) -> str | None:
         return None
 
     reason = re.sub(r"\s+", " ", article.scores.reason).strip() or "読む価値の軸が見えやすい"
-    title = re.sub(r"\s+", " ", article.title).strip()
+    title = re.sub(r"\s+", " ", article.scores.title_ja or article.title).strip()
     sentences = [
         base_summary.rstrip("。") + "。",
         f"要点としては「{title}」が扱う論点を短時間で把握しやすく、{reason}という観点から読む価値を判断しやすい。",
@@ -409,6 +484,134 @@ def _expand_summary_ja_locally(article: RankedArticle) -> str | None:
         expanded += "細部を確認する前に、結論と意味合いをまとめてつかみたいときに向いている。"
 
     return _normalize_summary_ja(expanded)
+
+
+def _title_needs_translation(article: RankedArticle) -> bool:
+    return not _looks_japanese(article.title) and not article.scores.title_ja
+
+
+async def _rewrite_title_for_article(
+    article: RankedArticle,
+) -> str | None:
+    if not config.OPENAI_API_KEY:
+        return None
+
+    client = AsyncOpenAI(
+        api_key=config.OPENAI_API_KEY, organization=config.OPENAI_ORGANIZATION or None
+    )
+    prompt = TITLE_TRANSLATION_PROMPT_TEMPLATE.format(
+        rules_prompt=_RULES_PROMPT,
+        article_json=_title_refresh_prompt_payload([article]),
+    )
+
+    tries = 0
+    while tries < config.MAX_SCORE_RETRY:
+        tries += 1
+        try:
+            response = await client.chat.completions.create(
+                model=config.OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                max_completion_tokens=512,
+                reasoning_effort="minimal",
+                response_format={"type": "json_object"},
+                timeout=60.0,
+            )
+            text = (response.choices[0].message.content or "").strip()
+            data = _extract_json_from_text(text)
+            title_ja = _normalize_title_ja(
+                data.get("title_ja") if isinstance(data, dict) else None,
+                article.title,
+            )
+            if title_ja:
+                return title_ja
+            raise ValueError("title_ja missing")
+        except Exception as exc:
+            logger.warning(
+                "title rewrite error (%d/%d) for '%s': %s",
+                tries,
+                config.MAX_SCORE_RETRY,
+                article.title[:30],
+                str(exc)[:120],
+            )
+            if tries >= config.MAX_SCORE_RETRY:
+                break
+            await asyncio.sleep((2 ** (tries - 1)) + (0.1 * tries))
+
+    return None
+
+
+async def _rewrite_titles_for_ranked_articles(
+    articles: List[RankedArticle],
+) -> dict[int, str]:
+    if not articles or not config.OPENAI_API_KEY:
+        return {}
+
+    client = AsyncOpenAI(
+        api_key=config.OPENAI_API_KEY, organization=config.OPENAI_ORGANIZATION or None
+    )
+    prompt = TITLE_TRANSLATION_BATCH_PROMPT_TEMPLATE.format(
+        rules_prompt=_RULES_PROMPT,
+        articles_json=_title_refresh_prompt_payload(articles),
+    )
+
+    tries = 0
+    while tries < config.MAX_SCORE_RETRY:
+        tries += 1
+        try:
+            response = await client.chat.completions.create(
+                model=config.OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                max_completion_tokens=4096,
+                reasoning_effort="minimal",
+                response_format={"type": "json_object"},
+                timeout=120.0,
+            )
+            text = (response.choices[0].message.content or "").strip()
+            data = _extract_json_from_text(text)
+            if isinstance(data, dict) and "articles" in data:
+                data = data["articles"]
+            elif isinstance(data, dict):
+                for value in data.values():
+                    if isinstance(value, list):
+                        data = value
+                        break
+                else:
+                    raise ValueError("No title list found in response")
+
+            if not isinstance(data, list):
+                raise ValueError("Title batch response is not a list")
+
+            rewritten: dict[int, str] = {}
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+                index = _normalized_batch_id(item.get("id"))
+                article_title = articles[index].title if index is not None and index < len(articles) else ""
+                title_ja = _normalize_title_ja(item.get("title_ja"), article_title)
+                if index is not None and title_ja:
+                    rewritten[index] = title_ja
+
+            if rewritten:
+                return rewritten
+            raise ValueError("No valid titles returned")
+        except Exception as exc:
+            logger.warning(
+                "title batch rewrite error (%d/%d): %s",
+                tries,
+                config.MAX_SCORE_RETRY,
+                str(exc)[:160],
+            )
+            if tries >= config.MAX_SCORE_RETRY:
+                break
+            await asyncio.sleep((2 ** (tries - 1)) + (0.1 * tries))
+
+    return {}
 
 
 async def _rewrite_summary_for_article(
@@ -572,6 +775,37 @@ async def ensure_ranked_summaries(
     return updated
 
 
+async def ensure_ranked_titles(
+    ranked_articles: List[RankedArticle],
+) -> List[RankedArticle]:
+    pending_positions = [
+        index for index, article in enumerate(ranked_articles) if _title_needs_translation(article)
+    ]
+    if not pending_positions:
+        return ranked_articles
+
+    pending_articles = [ranked_articles[index] for index in pending_positions]
+    rewritten = await _rewrite_titles_for_ranked_articles(pending_articles)
+    updated = list(ranked_articles)
+    remaining_positions: list[int] = []
+
+    for local_index, article in enumerate(pending_articles):
+        global_index = pending_positions[local_index]
+        title_ja = rewritten.get(local_index)
+        if title_ja is not None:
+            updated[global_index] = _replace_ranked_title(article, title_ja)
+        else:
+            remaining_positions.append(global_index)
+
+    for global_index in remaining_positions:
+        article = updated[global_index]
+        title_ja = await _rewrite_title_for_article(article)
+        if title_ja is not None:
+            updated[global_index] = _replace_ranked_title(article, title_ja)
+
+    return updated
+
+
 async def score_article(article: Article) -> ScoreResult:
     """Score a single article using OpenAI"""
     # Check cache
@@ -620,7 +854,10 @@ async def score_article(article: Article) -> ScoreResult:
 
             text = (response.choices[0].message.content or "").strip()
             data = _extract_json_from_text(text)
-            score = _build_score_result(data if isinstance(data, dict) else {})
+            score = _build_score_result(
+                data if isinstance(data, dict) else {},
+                article_title=article.title,
+            )
 
             if score:
                 break
@@ -730,43 +967,12 @@ async def score_articles_openai_batch(
 
                 if article_result:
                     try:
-                        novelty = int(article_result.get("novelty", 5))
-                        interest = int(article_result.get("interest", 5))
-                        expertise = int(article_result.get("expertise", 5))
-                        cultural_relevance = int(
-                            article_result.get("cultural_relevance", 5)
+                        score = _build_score_result(
+                            article_result if isinstance(article_result, dict) else {},
+                            article_title=article.title,
                         )
-                        lifestyle_connection = int(
-                            article_result.get("lifestyle_connection", 5)
-                        )
-                        creativity = int(article_result.get("creativity", 5))
-                        reason = str(article_result.get("reason", ""))[:120]
-
-                        if all(
-                            _validate_score(s)
-                            for s in [
-                                novelty,
-                                interest,
-                                expertise,
-                                cultural_relevance,
-                                lifestyle_connection,
-                                creativity,
-                            ]
-                        ):
-                            results.append(
-                                ScoreResult(
-                                    novelty=novelty,
-                                    interest=interest,
-                                    expertise=expertise,
-                                    cultural_relevance=cultural_relevance,
-                                    lifestyle_connection=lifestyle_connection,
-                                    creativity=creativity,
-                                    reason=reason,
-                                    summary_ja=_normalize_summary_ja(
-                                        article_result.get("summary_ja")
-                                    ),
-                                )
-                            )
+                        if score is not None:
+                            results.append(score)
                         else:
                             results.append(_generate_heuristic_score(article))
                     except (ValueError, TypeError):

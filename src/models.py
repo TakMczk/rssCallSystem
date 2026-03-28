@@ -38,6 +38,7 @@ class ScoreResult(BaseModel):
 
     reason: str
     summary_ja: Optional[str] = None
+    title_ja: Optional[str] = None
 
     @property
     def total(self) -> int:

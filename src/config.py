@@ -65,7 +65,7 @@ RANKING_FRESHNESS_MAX_BONUS: float = float(
 RANKING_SOURCE_REPEAT_PENALTY: float = float(
     os.getenv("RANKING_SOURCE_REPEAT_PENALTY", "1.5")
 )
-SCORER_CACHE_VERSION: str = os.getenv("SCORER_CACHE_VERSION", "v4")
+SCORER_CACHE_VERSION: str = os.getenv("SCORER_CACHE_VERSION", "v5")
 
 # Some RSS readers (and Inoreader's optional "duplicate filters") can hide items
 # if they consider them duplicates across feeds/folders/account. When enabled,

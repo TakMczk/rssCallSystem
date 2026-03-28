@@ -56,6 +56,10 @@ export function getSummary(article: FeedArticle): string {
   return article.summaryJa?.trim() || article.excerpt || '要約はまだありません。'
 }
 
+export function getDisplayTitle(article: FeedArticle): string {
+  return article.titleJa?.trim() || article.title
+}
+
 function compareByLatest(a: FeedArticle, b: FeedArticle): number {
   const aDate = new Date(a.freshnessAt ?? a.publishedAt).getTime()
   const bDate = new Date(b.freshnessAt ?? b.publishedAt).getTime()
@@ -158,6 +162,7 @@ export function parseLegacyRssFeed(xmlText: string): FeedPayload {
         item.querySelector('link')?.textContent?.trim() ??
         `rss-${index + 1}`,
       title: stripRankSuffix(item.querySelector('title')?.textContent?.trim() ?? 'Untitled'),
+      titleJa: null,
       url: originalUrl,
       source,
       publishedAt: item.querySelector('pubDate')?.textContent?.trim() ?? new Date().toISOString(),
