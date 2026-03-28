@@ -7,7 +7,7 @@ from typing import Any, List
 import re
 from openai import AsyncOpenAI
 
-from .models import Article, ScoreResult
+from .models import Article, RankedArticle, ScoreResult
 from . import config
 from .logging_utils import get_logger
 
@@ -37,6 +37,8 @@ def _load_rules_prompt() -> str:
 
 
 _RULES_PROMPT = _load_rules_prompt()
+SUMMARY_MIN_CHARS = 160
+SUMMARY_MAX_CHARS = 240
 
 # Templates
 PROMPT_TEMPLATE = """{rules_prompt}
@@ -45,7 +47,8 @@ PROMPT_TEMPLATE = """{rules_prompt}
 各指標は0-10整数で、6-7を標準、8-9をかなり強い、10をごく一部の突出記事に限定してください。
 技術面(重視): novelty(新規性), interest(興味深さ), expertise(専門性)
 文化面: cultural_relevance(文化的関連性), lifestyle_connection(生活との接点), creativity(創造性・芸術性)
-summary_ja には 80〜140文字程度の日本語要約を入れてください。英語記事でも必ず日本語で要約してください。
+summary_ja には 160〜240文字程度の日本語要約を入れてください。英語記事でも必ず日本語で要約してください。
+summary_ja はエグゼクティブ・サマリー形式で、結論→価値→読むべき理由が短く分かるようにしてください。
 JSON形式で出力してください。
 出力 JSON:
 {{"novelty":0-10,"interest":0-10,"expertise":0-10,"cultural_relevance":0-10,"lifestyle_connection":0-10,"creativity":0-10,"reason":"100文字以内","summary_ja":"日本語要約"}}
@@ -60,10 +63,41 @@ BATCH_PROMPT_TEMPLATE = """{rules_prompt}
 各指標は0-10整数で、6-7を標準、8-9をかなり強い、10をごく一部の突出記事に限定してください。
 技術面(重視): novelty(新規性), interest(興味深さ), expertise(専門性)
 文化面: cultural_relevance(文化的関連性), lifestyle_connection(生活との接点), creativity(創造性・芸術性)
-summary_ja には 80〜140文字程度の日本語要約を入れてください。英語記事でも必ず日本語で要約してください。
+summary_ja には 160〜240文字程度の日本語要約を入れてください。英語記事でも必ず日本語で要約してください。
+summary_ja はエグゼクティブ・サマリー形式で、結論→価値→読むべき理由が短く分かるようにしてください。
 各記事に id, novelty, interest, expertise, cultural_relevance, lifestyle_connection, creativity, reason, summary_ja を含む JSON を返してください。
 出力形式:
 {{"articles":[{{"id":0,"novelty":0-10,"interest":0-10,"expertise":0-10,"cultural_relevance":0-10,"lifestyle_connection":0-10,"creativity":0-10,"reason":"100文字以内","summary_ja":"日本語要約"}}]}}
+
+記事一覧(JSON):
+{articles_json}
+"""
+
+SUMMARY_REWRITE_PROMPT_TEMPLATE = """{rules_prompt}
+
+以下の記事について、summary_ja だけを再生成してください。
+- summary_ja は必ず {summary_min}〜{summary_max} 文字の日本語で書く
+- エグゼクティブ・サマリー形式で、結論→価値→読むべき理由の順でまとめる
+- 2〜3文、1段落で簡潔に書く
+- 英語記事でも必ず日本語にする
+- reason や点数は出力しない
+出力 JSON:
+{{"summary_ja":"日本語要約"}}
+
+記事データ(JSON):
+{article_json}
+"""
+
+SUMMARY_BATCH_PROMPT_TEMPLATE = """{rules_prompt}
+
+以下の記事一覧について、summary_ja だけを再生成してください。
+- summary_ja は必ず {summary_min}〜{summary_max} 文字の日本語で書く
+- エグゼクティブ・サマリー形式で、結論→価値→読むべき理由の順でまとめる
+- 2〜3文、1段落で簡潔に書く
+- 英語記事でも必ず日本語にする
+- reason や点数は出力しない
+出力形式:
+{{"articles":[{{"id":0,"summary_ja":"日本語要約"}}]}}
 
 記事一覧(JSON):
 {articles_json}
@@ -152,6 +186,21 @@ def _batch_prompt_payload(articles: List[Article]) -> str:
             "title": article.title,
             "summary": article.summary[:400],
             "excerpt": article.excerpt,
+        }
+        for index, article in enumerate(articles)
+    ]
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def _summary_refresh_prompt_payload(articles: List[RankedArticle]) -> str:
+    payload = [
+        {
+            "id": index,
+            "source": article.source,
+            "title": article.title,
+            "summary": article.summary[:600],
+            "excerpt": article.excerpt[:600],
+            "current_summary_ja": article.scores.summary_ja,
         }
         for index, article in enumerate(articles)
     ]
@@ -303,7 +352,11 @@ def _normalize_summary_ja(value: Any) -> str | None:
     if value is None:
         return None
     text = str(value).strip()
-    return text[:200] if text else None
+    return text[:SUMMARY_MAX_CHARS] if text else None
+
+
+def _summary_is_in_target_range(value: str | None) -> bool:
+    return value is not None and SUMMARY_MIN_CHARS <= len(value.strip()) <= SUMMARY_MAX_CHARS
 
 
 def _build_score_result(data: dict[str, Any]) -> ScoreResult | None:
@@ -322,6 +375,201 @@ def _build_score_result(data: dict[str, Any]) -> ScoreResult | None:
         reason=str(data.get("reason", ""))[:120],
         summary_ja=_normalize_summary_ja(data.get("summary_ja")),
     )
+
+
+def _replace_summary(score: ScoreResult, summary_ja: str) -> ScoreResult:
+    return score.model_copy(update={"summary_ja": summary_ja})
+
+
+def _replace_ranked_summary(article: RankedArticle, summary_ja: str) -> RankedArticle:
+    return article.model_copy(update={"scores": _replace_summary(article.scores, summary_ja)})
+
+
+def _expand_summary_ja_locally(article: RankedArticle) -> str | None:
+    base_summary = (
+        article.scores.summary_ja
+        or article.summary
+        or article.excerpt
+        or article.title
+    )
+    base_summary = re.sub(r"\s+", " ", base_summary).strip()
+    if not base_summary:
+        return None
+
+    reason = re.sub(r"\s+", " ", article.scores.reason).strip() or "読む価値の軸が見えやすい"
+    title = re.sub(r"\s+", " ", article.title).strip()
+    sentences = [
+        base_summary.rstrip("。") + "。",
+        f"要点としては「{title}」が扱う論点を短時間で把握しやすく、{reason}という観点から読む価値を判断しやすい。",
+        "背景、実務への影響、次にどこを深掘りすべきかを見極める入口として使えるため、読む前の一次判断材料として役立つ。",
+    ]
+
+    expanded = "".join(sentences)
+    while len(expanded) < SUMMARY_MIN_CHARS:
+        expanded += "細部を確認する前に、結論と意味合いをまとめてつかみたいときに向いている。"
+
+    return _normalize_summary_ja(expanded)
+
+
+async def _rewrite_summary_for_article(
+    article: RankedArticle,
+) -> str | None:
+    if not config.OPENAI_API_KEY:
+        return None
+
+    client = AsyncOpenAI(
+        api_key=config.OPENAI_API_KEY, organization=config.OPENAI_ORGANIZATION or None
+    )
+    prompt = SUMMARY_REWRITE_PROMPT_TEMPLATE.format(
+        rules_prompt=_RULES_PROMPT,
+        summary_min=SUMMARY_MIN_CHARS,
+        summary_max=SUMMARY_MAX_CHARS,
+        article_json=_summary_refresh_prompt_payload([article]),
+    )
+
+    tries = 0
+    while tries < config.MAX_SCORE_RETRY:
+        tries += 1
+        try:
+            response = await client.chat.completions.create(
+                model=config.OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                max_completion_tokens=768,
+                reasoning_effort="minimal",
+                response_format={"type": "json_object"},
+                timeout=60.0,
+            )
+            text = (response.choices[0].message.content or "").strip()
+            data = _extract_json_from_text(text)
+            summary_ja = _normalize_summary_ja(
+                data.get("summary_ja") if isinstance(data, dict) else None
+            )
+            if _summary_is_in_target_range(summary_ja):
+                return summary_ja
+            raise ValueError("summary_ja length out of range")
+        except Exception as exc:
+            logger.warning(
+                "summary rewrite error (%d/%d) for '%s': %s",
+                tries,
+                config.MAX_SCORE_RETRY,
+                article.title[:30],
+                str(exc)[:120],
+            )
+            if tries >= config.MAX_SCORE_RETRY:
+                break
+            await asyncio.sleep((2 ** (tries - 1)) + (0.1 * tries))
+
+    return None
+
+
+async def _rewrite_summaries_for_ranked_articles(
+    articles: List[RankedArticle],
+) -> dict[int, str]:
+    if not articles or not config.OPENAI_API_KEY:
+        return {}
+
+    client = AsyncOpenAI(
+        api_key=config.OPENAI_API_KEY, organization=config.OPENAI_ORGANIZATION or None
+    )
+    prompt = SUMMARY_BATCH_PROMPT_TEMPLATE.format(
+        rules_prompt=_RULES_PROMPT,
+        summary_min=SUMMARY_MIN_CHARS,
+        summary_max=SUMMARY_MAX_CHARS,
+        articles_json=_summary_refresh_prompt_payload(articles),
+    )
+
+    tries = 0
+    while tries < config.MAX_SCORE_RETRY:
+        tries += 1
+        try:
+            response = await client.chat.completions.create(
+                model=config.OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                max_completion_tokens=6144,
+                reasoning_effort="minimal",
+                response_format={"type": "json_object"},
+                timeout=120.0,
+            )
+            text = (response.choices[0].message.content or "").strip()
+            data = _extract_json_from_text(text)
+            if isinstance(data, dict) and "articles" in data:
+                data = data["articles"]
+            elif isinstance(data, dict):
+                for value in data.values():
+                    if isinstance(value, list):
+                        data = value
+                        break
+                else:
+                    raise ValueError("No summary list found in response")
+
+            if not isinstance(data, list):
+                raise ValueError("Summary batch response is not a list")
+
+            rewritten: dict[int, str] = {}
+            for item in data:
+                if not isinstance(item, dict):
+                    continue
+                index = _normalized_batch_id(item.get("id"))
+                summary_ja = _normalize_summary_ja(item.get("summary_ja"))
+                if index is not None and _summary_is_in_target_range(summary_ja):
+                    rewritten[index] = summary_ja
+
+            if rewritten:
+                return rewritten
+            raise ValueError("No valid summaries returned")
+        except Exception as exc:
+            logger.warning(
+                "summary batch rewrite error (%d/%d): %s",
+                tries,
+                config.MAX_SCORE_RETRY,
+                str(exc)[:160],
+            )
+            if tries >= config.MAX_SCORE_RETRY:
+                break
+            await asyncio.sleep((2 ** (tries - 1)) + (0.1 * tries))
+
+    return {}
+
+
+async def ensure_ranked_summaries(
+    ranked_articles: List[RankedArticle],
+) -> List[RankedArticle]:
+    pending_positions = [
+        index
+        for index, article in enumerate(ranked_articles)
+        if not _summary_is_in_target_range(article.scores.summary_ja)
+    ]
+    if not pending_positions:
+        return ranked_articles
+
+    pending_articles = [ranked_articles[index] for index in pending_positions]
+    rewritten = await _rewrite_summaries_for_ranked_articles(pending_articles)
+    updated = list(ranked_articles)
+    remaining_positions: list[int] = []
+
+    for local_index, article in enumerate(pending_articles):
+        global_index = pending_positions[local_index]
+        summary_ja = rewritten.get(local_index)
+        if summary_ja is not None:
+            updated[global_index] = _replace_ranked_summary(article, summary_ja)
+        else:
+            remaining_positions.append(global_index)
+
+    for global_index in remaining_positions:
+        article = updated[global_index]
+        summary_ja = await _rewrite_summary_for_article(article)
+        if summary_ja is None:
+            summary_ja = _expand_summary_ja_locally(article)
+        if summary_ja is not None:
+            updated[global_index] = _replace_ranked_summary(article, summary_ja)
+
+    return updated
 
 
 async def score_article(article: Article) -> ScoreResult:
