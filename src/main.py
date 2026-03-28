@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 from . import config
 from .fetcher import _DEF_PUB_DT, fetch_all_feeds, normalize
 from .json_builder import build_json_feed
-from .scorer import ensure_ranked_summaries, score_articles
+from .scorer import ensure_ranked_summaries, ensure_ranked_titles, score_articles
 from .ranking import sort_ranked
 from .rss_builder import build_rss
 from .models import RankedArticle, Article
@@ -89,6 +89,7 @@ async def run():
         ranked.append(RankedArticle(**a.model_dump(), scores=s))
     ranked_sorted = sort_ranked(ranked)[: config.TOP_N]
     ranked_sorted = await ensure_ranked_summaries(ranked_sorted)
+    ranked_sorted = await ensure_ranked_titles(ranked_sorted)
     generated_at = datetime.now(timezone.utc)
     rss_xml = build_rss(ranked_sorted)
     json_text = build_json_feed(ranked_sorted, generated_at=generated_at)

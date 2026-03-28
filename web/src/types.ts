@@ -12,6 +12,7 @@ export type FeedArticle = {
   rank: number
   id: string
   title: string
+  titleJa?: string | null
   url: string
   source: string
   publishedAt: string

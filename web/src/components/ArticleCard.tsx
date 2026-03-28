@@ -11,7 +11,7 @@ import {
 } from '@mui/material'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import type { FeedArticle } from '../types'
-import { formatDate, getSummary } from '../feedUtils'
+import { formatDate, getDisplayTitle, getSummary } from '../feedUtils'
 import { SourceBadge } from './SourceBadge'
 
 const scoreLabels = [
@@ -69,7 +69,7 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
               underline="hover"
               color="inherit"
             >
-              <Typography variant={featured ? 'h5' : 'h6'}>{article.title}</Typography>
+              <Typography variant={featured ? 'h5' : 'h6'}>{getDisplayTitle(article)}</Typography>
             </Link>
           </Box>
 

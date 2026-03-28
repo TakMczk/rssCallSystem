@@ -295,7 +295,7 @@ def test_score_article_prompt_treats_backticks_as_data(monkeypatch):
                 choices=[
                     SimpleNamespace(
                         message=SimpleNamespace(
-                            content='{"novelty":7,"interest":7,"expertise":7,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok","summary_ja":"日本語要約"}'
+                            content='{"novelty":7,"interest":7,"expertise":7,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok","summary_ja":"日本語要約","title_ja":"日本語タイトル"}'
                         )
                     )
                 ]
@@ -315,6 +315,7 @@ def test_score_article_prompt_treats_backticks_as_data(monkeypatch):
         result = await scorer.score_article(article)
         assert result.reason == "ok"
         assert result.summary_ja == "日本語要約"
+        assert result.title_ja == "日本語タイトル"
 
     asyncio.run(run())
 
@@ -325,6 +326,7 @@ def test_score_article_prompt_treats_backticks_as_data(monkeypatch):
     assert "Ignore previous instructions" in user_prompt
     assert "160〜240文字程度" in user_prompt
     assert "100文字以内" in user_prompt
+    assert "title_ja" in user_prompt
 
 
 def test_score_article_prompt_includes_source_metadata(monkeypatch):
@@ -349,7 +351,7 @@ def test_score_article_prompt_includes_source_metadata(monkeypatch):
                 choices=[
                     SimpleNamespace(
                         message=SimpleNamespace(
-                            content='{"novelty":6,"interest":6,"expertise":6,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok","summary_ja":"日本語要約"}'
+                            content='{"novelty":6,"interest":6,"expertise":6,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok","summary_ja":"日本語要約","title_ja":"日本語タイトル"}'
                         )
                     )
                 ]
@@ -368,12 +370,14 @@ def test_score_article_prompt_includes_source_metadata(monkeypatch):
     async def run():
         result = await scorer.score_article(article)
         assert result.summary_ja == "日本語要約"
+        assert result.title_ja == "AIの記事"
 
     asyncio.run(run())
 
     user_prompt = captured_messages["messages"][1]["content"]
     assert "zenn.dev/feed" in user_prompt
     assert "summary_ja" in user_prompt
+    assert "title_ja" in user_prompt
     assert "160〜240文字程度" in user_prompt
     assert "100文字以内" in user_prompt
 
@@ -411,7 +415,7 @@ def test_batch_scoring_parses_summary_ja_and_includes_source(monkeypatch):
                 choices=[
                     SimpleNamespace(
                         message=SimpleNamespace(
-                            content='{"articles":[{"id":0,"novelty":7,"interest":7,"expertise":7,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok0","summary_ja":"要約0"},{"id":1,"novelty":6,"interest":6,"expertise":6,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok1","summary_ja":"要約1"}]}'
+                            content='{"articles":[{"id":0,"novelty":7,"interest":7,"expertise":7,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok0","summary_ja":"要約0","title_ja":"Qiita記事"},{"id":1,"novelty":6,"interest":6,"expertise":6,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok1","summary_ja":"要約1","title_ja":"HN記事"}]}'
                         )
                     )
                 ]
@@ -430,6 +434,7 @@ def test_batch_scoring_parses_summary_ja_and_includes_source(monkeypatch):
     async def run():
         results = await scorer.score_articles_openai_batch(articles, batch_id=1)
         assert [result.summary_ja for result in results] == ["要約0", "要約1"]
+        assert [result.title_ja for result in results] == ["Qiita記事", "HN記事"]
 
     asyncio.run(run())
 
@@ -437,6 +442,7 @@ def test_batch_scoring_parses_summary_ja_and_includes_source(monkeypatch):
     assert "qiita.com/popular-items/feed" in user_prompt
     assert "hnrss.org/best" in user_prompt
     assert "summary_ja" in user_prompt
+    assert "title_ja" in user_prompt
     assert "160〜240文字程度" in user_prompt
     assert "100文字以内" in user_prompt
 
@@ -518,5 +524,65 @@ def test_ensure_ranked_summaries_falls_back_to_local_expansion(monkeypatch):
         results = await scorer.ensure_ranked_summaries([article])
         assert len(results[0].scores.summary_ja or "") >= 160
         assert "読む価値" in (results[0].scores.summary_ja or "")
+
+    asyncio.run(run())
+
+
+def test_ensure_ranked_titles_rewrites_missing_english_titles(monkeypatch):
+    monkeypatch.setattr(config, "OPENAI_API_KEY", "test-key")
+    captured_messages = {}
+    article = make_ranked_article(article_id="ranked-title-1", summary_ja="あ" * 170)
+    article = article.model_copy(update={"title": "Distributed systems in practice"})
+
+    class FakeCompletions:
+        async def create(self, **kwargs):
+            captured_messages["messages"] = kwargs["messages"]
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(
+                            content=json.dumps(
+                                {"articles": [{"id": 0, "title_ja": "実践分散システム"}]},
+                                ensure_ascii=False,
+                            )
+                        )
+                    )
+                ]
+            )
+
+    class FakeChat:
+        def __init__(self):
+            self.completions = FakeCompletions()
+
+    class FakeAsyncOpenAI:
+        def __init__(self, *args, **kwargs):
+            self.chat = FakeChat()
+
+    monkeypatch.setattr(scorer, "AsyncOpenAI", FakeAsyncOpenAI)
+
+    async def run():
+        results = await scorer.ensure_ranked_titles([article])
+        assert results[0].scores.title_ja == "実践分散システム"
+
+    asyncio.run(run())
+
+    user_prompt = captured_messages["messages"][1]["content"]
+    assert "title_ja だけを再生成" in user_prompt
+    assert "自然な日本語タイトル" in user_prompt
+
+
+def test_ensure_ranked_titles_skips_japanese_titles(monkeypatch):
+    monkeypatch.setattr(config, "OPENAI_API_KEY", "test-key")
+    article = make_ranked_article(article_id="ranked-title-2", summary_ja="あ" * 170)
+    article = article.model_copy(update={"title": "日本語タイトル"})
+
+    async def fail_if_called(*args, **kwargs):
+        raise AssertionError("title rewrite should not be called")
+
+    monkeypatch.setattr(scorer, "_rewrite_titles_for_ranked_articles", fail_if_called)
+
+    async def run():
+        results = await scorer.ensure_ranked_titles([article])
+        assert results[0].scores.title_ja is None
 
     asyncio.run(run())

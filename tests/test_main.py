@@ -189,10 +189,14 @@ def test_run_writes_json_output_for_ranked_articles(monkeypatch, tmp_path):
                 creativity=4,
                 reason="興味深い比較記事",
                 summary_ja="英語記事の要点を日本語で要約",
+                title_ja="英語記事の日本語タイトル",
             )
         ]
 
     async def passthrough_ranked_summaries(ranked):
+        return ranked
+
+    async def passthrough_ranked_titles(ranked):
         return ranked
 
     monkeypatch.setattr(main, "fetch_all_feeds", fake_fetch_all_feeds)
@@ -200,6 +204,7 @@ def test_run_writes_json_output_for_ranked_articles(monkeypatch, tmp_path):
     monkeypatch.setattr(main, "score_articles", fake_score_articles)
     monkeypatch.setattr(main, "sort_ranked", lambda ranked: ranked)
     monkeypatch.setattr(main, "ensure_ranked_summaries", passthrough_ranked_summaries)
+    monkeypatch.setattr(main, "ensure_ranked_titles", passthrough_ranked_titles)
 
     asyncio.run(main.run())
 
@@ -210,6 +215,7 @@ def test_run_writes_json_output_for_ranked_articles(monkeypatch, tmp_path):
     assert len(payload["articles"]) == 1
     first = payload["articles"][0]
     assert first["title"] == article.title
+    assert first["titleJa"] == "英語記事の日本語タイトル"
     assert first["source"] == article.source
     assert first["summaryJa"] == "英語記事の要点を日本語で要約"
     assert first["scores"]["total"] > 0
@@ -258,11 +264,15 @@ def test_run_rewrites_top_ranked_summaries_before_writing(monkeypatch, tmp_path)
             )
         ]
 
+    async def passthrough_ranked_titles(ranked):
+        return ranked
+
     monkeypatch.setattr(main, "fetch_all_feeds", fake_fetch_all_feeds)
     monkeypatch.setattr(main, "normalize", lambda raw: [article])
     monkeypatch.setattr(main, "score_articles", fake_score_articles)
     monkeypatch.setattr(main, "sort_ranked", lambda ranked: ranked)
     monkeypatch.setattr(main, "ensure_ranked_summaries", fake_ensure_ranked_summaries)
+    monkeypatch.setattr(main, "ensure_ranked_titles", passthrough_ranked_titles)
 
     asyncio.run(main.run())
 
