@@ -30,6 +30,8 @@ export function SourceBadge({ source }: SourceBadgeProps) {
         borderRadius: 999,
         bgcolor: 'background.paper',
         minHeight: 28,
+        minWidth: 0,
+        maxWidth: '100%',
       }}
     >
       {showFavicon && faviconUrl ? (
@@ -41,7 +43,10 @@ export function SourceBadge({ source }: SourceBadgeProps) {
           sx={{ width: 16, height: 16, borderRadius: 0.5, flexShrink: 0 }}
         />
       ) : null}
-      <Typography variant="caption" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+      <Typography
+        variant="caption"
+        sx={{ fontWeight: 600, lineHeight: 1.2, overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+      >
         {getSourceLabel(source)}
       </Typography>
     </Box>

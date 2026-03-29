@@ -38,8 +38,8 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
         borderColor: featured ? 'secondary.main' : undefined,
       }}
     >
-      <CardContent>
-        <Stack spacing={2.25}>
+      <CardContent sx={{ minWidth: 0 }}>
+        <Stack spacing={2.25} sx={{ minWidth: 0 }}>
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
             spacing={1}
@@ -69,7 +69,12 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
               underline="hover"
               color="inherit"
             >
-              <Typography variant={featured ? 'h5' : 'h6'}>{getDisplayTitle(article)}</Typography>
+              <Typography
+                variant={featured ? 'h5' : 'h6'}
+                sx={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+              >
+                {getDisplayTitle(article)}
+              </Typography>
             </Link>
           </Box>
 
@@ -79,14 +84,19 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
               gridTemplateColumns: { xs: '1fr', md: 'minmax(0,1fr) 220px' },
               gap: 2,
               alignItems: 'start',
+              minWidth: 0,
             }}
           >
-            <Stack spacing={1.75}>
+            <Stack spacing={1.75} sx={{ minWidth: 0 }}>
               <Box>
                 <Typography variant="subtitle2" gutterBottom>
                   概要
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ lineHeight: 1.8, overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                >
                   {getSummary(article)}
                 </Typography>
               </Box>
@@ -95,7 +105,11 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
                 <Typography variant="subtitle2" gutterBottom>
                   選定理由
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ lineHeight: 1.7, overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                >
                   {article.reason}
                 </Typography>
               </Box>
@@ -125,6 +139,7 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
                   theme.palette.mode === 'dark'
                     ? 'rgba(144,202,249,0.08)'
                     : 'rgba(21,101,192,0.04)',
+                minWidth: 0,
               }}
             >
               <Stack spacing={1.1}>
@@ -173,14 +188,14 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
                   />
                 </Box>
 
-                <Box sx={{ overflowX: 'auto', pb: 0.25 }}>
+                <Box sx={{ pb: 0.25 }}>
                   <Stack
                     direction="row"
                     spacing={0.75}
                     useFlexGap
                     sx={{
-                      flexWrap: 'nowrap',
-                      minWidth: 'max-content',
+                      flexWrap: 'wrap',
+                      minWidth: 0,
                       justifyContent: { xs: 'flex-start', md: 'center' },
                     }}
                   >
@@ -224,9 +239,18 @@ export function ArticleCard({ article, featured = false }: ArticleCardProps) {
               更新反映: {formatDate(article.freshnessAt ?? article.publishedAt)}
             </Typography>
             {!featured ? (
-              <Link href={article.url} target="_blank" rel="noreferrer" underline="hover" variant="caption">
+              <Button
+                component="a"
+                href={article.url}
+                target="_blank"
+                rel="noreferrer"
+                variant="outlined"
+                size="small"
+                endIcon={<OpenInNewIcon />}
+                sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }}
+              >
                 元記事を開く
-              </Link>
+              </Button>
             ) : null}
           </Stack>
         </Stack>
