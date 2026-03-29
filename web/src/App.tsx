@@ -28,7 +28,6 @@ import {
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
-import RssFeedIcon from '@mui/icons-material/RssFeed'
 import PublicIcon from '@mui/icons-material/Public'
 import UpdateIcon from '@mui/icons-material/Update'
 import type { FeedPayload } from './types'
@@ -227,16 +226,26 @@ function App() {
               </IconButton>
             </Tooltip>
 
-            <Button
-              component="a"
-              href="./rss.xml"
-              target="_blank"
-              rel="noreferrer"
-              startIcon={<RssFeedIcon />}
-              variant="contained"
-            >
-              RSS を購読
-            </Button>
+            <Tooltip title="RSS を購読">
+              <IconButton
+                component="a"
+                href="./rss.xml"
+                target="_blank"
+                rel="noreferrer"
+                color="primary"
+                aria-label="RSS を購読"
+                sx={{
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  bgcolor: 'background.paper',
+                }}
+              >
+                <Box component="span" aria-hidden="true" sx={{ fontSize: '1.125rem', lineHeight: 1 }}>
+                  📡
+                </Box>
+              </IconButton>
+            </Tooltip>
           </Toolbar>
         </AppBar>
 
@@ -292,7 +301,10 @@ function App() {
                     spacing={2}
                     alignItems={{ xs: 'stretch', md: 'center' }}
                   >
-                    <FormControl size="small" sx={{ minWidth: 220 }}>
+                    <FormControl
+                      size="small"
+                      sx={{ width: { xs: '100%', md: 'auto' }, minWidth: { md: 220 } }}
+                    >
                       <InputLabel id="source-filter-label">ソース</InputLabel>
                       <Select
                         labelId="source-filter-label"
@@ -309,7 +321,10 @@ function App() {
                       </Select>
                     </FormControl>
 
-                    <FormControl size="small" sx={{ minWidth: 180 }}>
+                    <FormControl
+                      size="small"
+                      sx={{ width: { xs: '100%', md: 'auto' }, minWidth: { md: 180 } }}
+                    >
                       <InputLabel id="sort-mode-label">並び順</InputLabel>
                       <Select
                         labelId="sort-mode-label"
