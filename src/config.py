@@ -16,12 +16,13 @@ def default_openai_reasoning_effort(model: str) -> Optional[str]:
     return "minimal"
 
 
-def _resolve_openai_reasoning_effort() -> Optional[str]:
+def _resolve_openai_reasoning_effort(model: Optional[str] = None) -> Optional[str]:
     override = os.getenv("OPENAI_REASONING_EFFORT")
     if override is not None:
         override = override.strip()
         return override or None
-    return default_openai_reasoning_effort(os.getenv("OPENAI_MODEL", "gpt-5-nano"))
+    resolved_model = model or os.getenv("OPENAI_MODEL") or OPENAI_MODEL
+    return default_openai_reasoning_effort(resolved_model)
 
 
 def openai_cache_namespace(
@@ -60,7 +61,7 @@ OPENAI_ORGANIZATION: Optional[str] = os.getenv(
 # Default model: GPT-5.4-nano. The GPT-5.4 family uses `none` as the lowest-cost
 # reasoning setting in Chat Completions, while older GPT-5 models use `minimal`.
 OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5.4-nano")
-OPENAI_REASONING_EFFORT: Optional[str] = _resolve_openai_reasoning_effort()
+OPENAI_REASONING_EFFORT: Optional[str] = _resolve_openai_reasoning_effort(OPENAI_MODEL)
 RETRY_MAX: int = 2
 
 MAX_SCORE_RETRY: int = 3  # Increase retry attempts

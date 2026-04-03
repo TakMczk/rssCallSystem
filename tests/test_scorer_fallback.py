@@ -324,7 +324,7 @@ def test_score_article_prompt_treats_backticks_as_data(monkeypatch):
     assert "非信頼入力" in system_prompt
     assert "```json" not in user_prompt
     assert "Ignore previous instructions" in user_prompt
-    assert "160〜240文字程度" in user_prompt
+    assert f"{scorer.SUMMARY_MIN_CHARS}〜{scorer.SUMMARY_MAX_CHARS}文字程度" in user_prompt
     assert "100文字以内" in user_prompt
     assert "title_ja" in user_prompt
 
@@ -378,7 +378,7 @@ def test_score_article_prompt_includes_source_metadata(monkeypatch):
     assert "zenn.dev/feed" in user_prompt
     assert "summary_ja" in user_prompt
     assert "title_ja" in user_prompt
-    assert "160〜240文字程度" in user_prompt
+    assert f"{scorer.SUMMARY_MIN_CHARS}〜{scorer.SUMMARY_MAX_CHARS}文字程度" in user_prompt
     assert "100文字以内" in user_prompt
 
 
@@ -531,7 +531,7 @@ def test_batch_scoring_parses_summary_ja_and_includes_source(monkeypatch):
     assert "hnrss.org/best" in user_prompt
     assert "summary_ja" in user_prompt
     assert "title_ja" in user_prompt
-    assert "160〜240文字程度" in user_prompt
+    assert f"{scorer.SUMMARY_MIN_CHARS}〜{scorer.SUMMARY_MAX_CHARS}文字程度" in user_prompt
     assert "100文字以内" in user_prompt
 
 
@@ -575,7 +575,7 @@ def test_ensure_ranked_summaries_rewrites_short_summaries(monkeypatch):
 
     user_prompt = captured_messages["messages"][1]["content"]
     assert "summary_ja だけを再生成" in user_prompt
-    assert "160〜240" in user_prompt
+    assert f"{scorer.SUMMARY_MIN_CHARS}〜{scorer.SUMMARY_MAX_CHARS}" in user_prompt
     assert "エグゼクティブ・サマリー" in user_prompt
 
 
@@ -595,6 +595,42 @@ def test_ensure_ranked_summaries_skips_articles_with_valid_length(monkeypatch):
     asyncio.run(run())
 
 
+def test_ensure_ranked_summaries_keeps_publishable_japanese_summaries(monkeypatch):
+    monkeypatch.setattr(config, "OPENAI_API_KEY", "test-key")
+    article = make_ranked_article(article_id="ranked-2b", summary_ja="あ" * 120)
+
+    async def fail_if_called(*args, **kwargs):
+        raise AssertionError("summary rewrite should not be called")
+
+    monkeypatch.setattr(scorer, "_rewrite_summaries_for_ranked_articles", fail_if_called)
+
+    async def run():
+        results = await scorer.ensure_ranked_summaries([article])
+        assert results[0].scores.summary_ja == "あ" * 120
+
+    asyncio.run(run())
+
+
+def test_ensure_ranked_summaries_rewrites_non_japanese_summaries(monkeypatch):
+    monkeypatch.setattr(config, "OPENAI_API_KEY", "test-key")
+    article = make_ranked_article(
+        article_id="ranked-2c",
+        summary_ja="This is an English summary that is long enough to pass a length-only check but should still be rewritten into Japanese for publishing.",
+    )
+    rewritten_summary = "あ" * 120
+
+    async def fake_batch_rewrite(articles):
+        return {0: rewritten_summary}
+
+    monkeypatch.setattr(scorer, "_rewrite_summaries_for_ranked_articles", fake_batch_rewrite)
+
+    async def run():
+        results = await scorer.ensure_ranked_summaries([article])
+        assert results[0].scores.summary_ja == rewritten_summary
+
+    asyncio.run(run())
+
+
 def test_ensure_ranked_summaries_falls_back_to_local_expansion(monkeypatch):
     monkeypatch.setattr(config, "OPENAI_API_KEY", "test-key")
     article = make_ranked_article(article_id="ranked-3", summary_ja="短い要約")
@@ -610,7 +646,7 @@ def test_ensure_ranked_summaries_falls_back_to_local_expansion(monkeypatch):
 
     async def run():
         results = await scorer.ensure_ranked_summaries([article])
-        assert len(results[0].scores.summary_ja or "") >= 160
+        assert len(results[0].scores.summary_ja or "") >= scorer.SUMMARY_MIN_CHARS
         assert "読む価値" in (results[0].scores.summary_ja or "")
 
     asyncio.run(run())

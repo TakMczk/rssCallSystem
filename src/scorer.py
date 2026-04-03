@@ -37,7 +37,7 @@ def _load_rules_prompt() -> str:
 
 
 _RULES_PROMPT = _load_rules_prompt()
-SUMMARY_MIN_CHARS = 160
+SUMMARY_MIN_CHARS = 100
 SUMMARY_MAX_CHARS = 240
 TITLE_MAX_CHARS = 140
 _JAPANESE_CHAR_RE = re.compile(r"[ぁ-ゟァ-ヿ一-龯々]")
@@ -56,7 +56,7 @@ PROMPT_TEMPLATE = """{rules_prompt}
 各指標は0-10整数で、6-7を標準、8-9をかなり強い、10をごく一部の突出記事に限定してください。
 技術面(重視): novelty(新規性), interest(興味深さ), expertise(専門性)
 文化面: cultural_relevance(文化的関連性), lifestyle_connection(生活との接点), creativity(創造性・芸術性)
-summary_ja には 160〜240文字程度の日本語要約を入れてください。英語記事でも必ず日本語で要約してください。
+summary_ja には 100〜240文字程度の日本語要約を入れてください。英語記事でも必ず日本語で要約してください。
 summary_ja はエグゼクティブ・サマリー形式で、結論→価値→読むべき理由が短く分かるようにしてください。
 title_ja には Web 表示用の日本語タイトルを入れてください。英語タイトルは自然な日本語タイトルに翻訳し、日本語タイトルは元の表現を保って構いません。
 JSON形式で出力してください。
@@ -73,7 +73,7 @@ BATCH_PROMPT_TEMPLATE = """{rules_prompt}
 各指標は0-10整数で、6-7を標準、8-9をかなり強い、10をごく一部の突出記事に限定してください。
 技術面(重視): novelty(新規性), interest(興味深さ), expertise(専門性)
 文化面: cultural_relevance(文化的関連性), lifestyle_connection(生活との接点), creativity(創造性・芸術性)
-summary_ja には 160〜240文字程度の日本語要約を入れてください。英語記事でも必ず日本語で要約してください。
+summary_ja には 100〜240文字程度の日本語要約を入れてください。英語記事でも必ず日本語で要約してください。
 summary_ja はエグゼクティブ・サマリー形式で、結論→価値→読むべき理由が短く分かるようにしてください。
 title_ja には Web 表示用の日本語タイトルを入れてください。英語タイトルは自然な日本語タイトルに翻訳し、日本語タイトルは元の表現を保って構いません。
 各記事に id, novelty, interest, expertise, cultural_relevance, lifestyle_connection, creativity, reason, summary_ja, title_ja を含む JSON を返してください。
@@ -410,7 +410,7 @@ def _looks_japanese(value: str) -> bool:
 def _normalize_summary_ja(value: Any) -> str | None:
     if value is None:
         return None
-    text = str(value).strip()
+    text = re.sub(r"\s+", " ", str(value)).strip()
     return text[:SUMMARY_MAX_CHARS] if text else None
 
 
@@ -429,7 +429,11 @@ def _normalize_title_ja(value: Any, article_title: str) -> str | None:
 
 
 def _summary_is_in_target_range(value: str | None) -> bool:
-    return value is not None and SUMMARY_MIN_CHARS <= len(value.strip()) <= SUMMARY_MAX_CHARS
+    return (
+        value is not None
+        and _looks_japanese(value)
+        and SUMMARY_MIN_CHARS <= len(value.strip()) <= SUMMARY_MAX_CHARS
+    )
 
 
 def _build_score_result(data: dict[str, Any], *, article_title: str) -> ScoreResult | None:
