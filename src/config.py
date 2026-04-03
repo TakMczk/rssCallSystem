@@ -39,6 +39,10 @@ MAX_SCORE_RETRY: int = 3  # Increase retry attempts
 LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 OUTPUT_RSS_PATH: str = os.getenv("OUTPUT_RSS_PATH", "docs/rss.xml")
 OUTPUT_JSON_PATH: str = os.getenv("OUTPUT_JSON_PATH", "docs/data.json")
+OUTPUT_HISTORY_DIR: str = os.getenv("OUTPUT_HISTORY_DIR", "docs/history")
+OUTPUT_HISTORY_INDEX_PATH: str = os.getenv(
+    "OUTPUT_HISTORY_INDEX_PATH", "docs/history/index.json"
+)
 CACHE_DIR: str = os.getenv("CACHE_DIR", ".cache")
 SCORE_CONCURRENCY: int = 2  # Reduce concurrent requests to avoid rate limits
 RATE_LIMIT_DELAY: float = 2.0  # Base delay for rate limit handling

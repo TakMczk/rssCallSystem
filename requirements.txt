@@ -5,6 +5,7 @@ python-dateutil
 bleach
 python-dotenv
 openai>=2.14.0  # GPT-5 support with max_completion_tokens
+tzdata
 
 # dev
 yapf

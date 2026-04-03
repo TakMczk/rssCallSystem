@@ -30,6 +30,21 @@ def make_article(
     )
 
 
+class FixedDateTime(datetime):
+    fixed_now: datetime
+
+    @classmethod
+    def now(cls, tz=None):
+        if tz is None:
+            return cls.fixed_now.replace(tzinfo=None)
+        return cls.fixed_now.astimezone(tz)
+
+
+def set_fixed_now(monkeypatch, value: datetime) -> None:
+    FixedDateTime.fixed_now = value
+    monkeypatch.setattr(main, "datetime", FixedDateTime)
+
+
 def test_filter_recent_articles_uses_freshness_when_newer():
     now = datetime.now(timezone.utc)
     articles = [
@@ -278,3 +293,163 @@ def test_run_rewrites_top_ranked_summaries_before_writing(monkeypatch, tmp_path)
 
     payload = json.loads(json_path.read_text(encoding="utf-8"))
     assert payload["articles"][0]["summaryJa"].startswith("長めのエグゼクティブサマリー")
+
+
+def test_run_writes_history_snapshot_and_rebuilds_index_using_jst_date(
+    monkeypatch, tmp_path
+):
+    output_path = tmp_path / "rss.xml"
+    json_path = tmp_path / "data.json"
+    history_dir = tmp_path / "history"
+    history_index_path = history_dir / "index.json"
+    history_dir.mkdir(parents=True)
+    (history_dir / "2026-03-29.json").write_text('{"schemaVersion":"1.0"}', encoding="utf-8")
+    history_index_path.write_text('{"stale": true}', encoding="utf-8")
+    monkeypatch.setattr(config, "OUTPUT_RSS_PATH", str(output_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_JSON_PATH", str(json_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_HISTORY_DIR", str(history_dir), raising=False)
+    monkeypatch.setattr(
+        config, "OUTPUT_HISTORY_INDEX_PATH", str(history_index_path), raising=False
+    )
+    monkeypatch.setattr(
+        config, "FEED_URLS", ["https://example.com/feed"], raising=False
+    )
+    set_fixed_now(monkeypatch, datetime(2026, 3, 30, 15, 30, tzinfo=timezone.utc))
+
+    article = make_article(
+        "recent",
+        published_at=FixedDateTime.fixed_now - timedelta(hours=1),
+        freshness_at=FixedDateTime.fixed_now - timedelta(minutes=20),
+    )
+
+    async def fake_fetch_all_feeds(urls):
+        return ["raw-item"]
+
+    async def fake_score_articles(articles):
+        return [
+            ScoreResult(
+                novelty=8,
+                interest=7,
+                expertise=7,
+                cultural_relevance=5,
+                lifestyle_connection=4,
+                creativity=4,
+                reason="興味深い比較記事",
+                summary_ja="英語記事の要点を日本語で要約",
+                title_ja="英語記事の日本語タイトル",
+            )
+        ]
+
+    async def passthrough_ranked_summaries(ranked):
+        return ranked
+
+    async def passthrough_ranked_titles(ranked):
+        return ranked
+
+    monkeypatch.setattr(main, "fetch_all_feeds", fake_fetch_all_feeds)
+    monkeypatch.setattr(main, "normalize", lambda raw: [article])
+    monkeypatch.setattr(main, "score_articles", fake_score_articles)
+    monkeypatch.setattr(main, "sort_ranked", lambda ranked: ranked)
+    monkeypatch.setattr(main, "ensure_ranked_summaries", passthrough_ranked_summaries)
+    monkeypatch.setattr(main, "ensure_ranked_titles", passthrough_ranked_titles)
+
+    asyncio.run(main.run())
+
+    history_payload = json.loads(
+        (history_dir / "2026-03-31.json").read_text(encoding="utf-8")
+    )
+    index_payload = json.loads(history_index_path.read_text(encoding="utf-8"))
+
+    assert history_payload["schemaVersion"] == "1.0"
+    assert history_payload["generatedAt"] == "2026-03-30T15:30:00Z"
+    assert len(history_payload["articles"]) == 1
+    assert index_payload == {
+        "schemaVersion": "1.0",
+        "latestDate": "2026-03-31",
+        "availableDates": ["2026-03-31", "2026-03-29"],
+    }
+
+
+def test_run_writes_empty_history_snapshot_when_no_recent_articles(monkeypatch, tmp_path):
+    output_path = tmp_path / "rss.xml"
+    json_path = tmp_path / "data.json"
+    history_dir = tmp_path / "history"
+    history_index_path = history_dir / "index.json"
+    monkeypatch.setattr(config, "OUTPUT_RSS_PATH", str(output_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_JSON_PATH", str(json_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_HISTORY_DIR", str(history_dir), raising=False)
+    monkeypatch.setattr(
+        config, "OUTPUT_HISTORY_INDEX_PATH", str(history_index_path), raising=False
+    )
+    monkeypatch.setattr(
+        config, "FEED_URLS", ["https://example.com/feed"], raising=False
+    )
+    set_fixed_now(monkeypatch, datetime(2026, 3, 31, 1, 0, tzinfo=timezone.utc))
+
+    async def fake_fetch_all_feeds(urls):
+        return ["raw-item"]
+
+    monkeypatch.setattr(main, "fetch_all_feeds", fake_fetch_all_feeds)
+    monkeypatch.setattr(
+        main,
+        "normalize",
+        lambda raw: [
+            make_article(
+                "too-old",
+                published_at=FixedDateTime.fixed_now - timedelta(days=5),
+            )
+        ],
+    )
+
+    asyncio.run(main.run())
+
+    history_payload = json.loads(
+        (history_dir / "2026-03-31.json").read_text(encoding="utf-8")
+    )
+    index_payload = json.loads(history_index_path.read_text(encoding="utf-8"))
+
+    assert json.loads(json_path.read_text(encoding="utf-8"))["articles"] == []
+    assert history_payload["schemaVersion"] == "1.0"
+    assert history_payload["articles"] == []
+    assert index_payload["latestDate"] == "2026-03-31"
+    assert index_payload["availableDates"] == ["2026-03-31"]
+
+
+def test_run_preserves_history_when_fetch_and_normalize_produce_no_items(
+    monkeypatch, tmp_path
+):
+    output_path = tmp_path / "rss.xml"
+    json_path = tmp_path / "data.json"
+    history_dir = tmp_path / "history"
+    history_index_path = history_dir / "index.json"
+    history_dir.mkdir(parents=True)
+    existing_snapshot = history_dir / "2026-03-30.json"
+    existing_snapshot.write_text('{"schemaVersion":"1.0","articles":[1]}', encoding="utf-8")
+    history_index_path.write_text(
+        '{"schemaVersion":"1.0","latestDate":"2026-03-30","availableDates":["2026-03-30"]}',
+        encoding="utf-8",
+    )
+    json_path.write_text('{"stale": true}', encoding="utf-8")
+    output_path.write_text("stale feed", encoding="utf-8")
+    monkeypatch.setattr(config, "OUTPUT_RSS_PATH", str(output_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_JSON_PATH", str(json_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_HISTORY_DIR", str(history_dir), raising=False)
+    monkeypatch.setattr(
+        config, "OUTPUT_HISTORY_INDEX_PATH", str(history_index_path), raising=False
+    )
+    monkeypatch.setattr(
+        config, "FEED_URLS", ["https://example.com/feed"], raising=False
+    )
+
+    async def fake_fetch_all_feeds(urls):
+        return []
+
+    monkeypatch.setattr(main, "fetch_all_feeds", fake_fetch_all_feeds)
+    monkeypatch.setattr(main, "normalize", lambda raw: [])
+
+    asyncio.run(main.run())
+
+    assert existing_snapshot.read_text(encoding="utf-8") == '{"schemaVersion":"1.0","articles":[1]}'
+    assert history_index_path.read_text(encoding="utf-8") == (
+        '{"schemaVersion":"1.0","latestDate":"2026-03-30","availableDates":["2026-03-30"]}'
+    )
