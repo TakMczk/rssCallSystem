@@ -382,6 +382,94 @@ def test_score_article_prompt_includes_source_metadata(monkeypatch):
     assert "100文字以内" in user_prompt
 
 
+def test_score_article_uses_configured_reasoning_effort(monkeypatch):
+    monkeypatch.setattr(config, "OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(config, "OPENAI_REASONING_EFFORT", "none", raising=False)
+    scorer._cache.clear()
+    captured = {}
+    article = make_article(
+        article_id="reasoning-none",
+        title="Story",
+        summary="Summary",
+        excerpt="Excerpt",
+    )
+
+    class FakeCompletions:
+        async def create(self, **kwargs):
+            captured["reasoning_effort"] = kwargs.get("reasoning_effort")
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(
+                            content='{"novelty":6,"interest":6,"expertise":6,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok","summary_ja":"日本語要約","title_ja":"日本語タイトル"}'
+                        )
+                    )
+                ]
+            )
+
+    class FakeChat:
+        def __init__(self):
+            self.completions = FakeCompletions()
+
+    class FakeAsyncOpenAI:
+        def __init__(self, *args, **kwargs):
+            self.chat = FakeChat()
+
+    monkeypatch.setattr(scorer, "AsyncOpenAI", FakeAsyncOpenAI)
+
+    async def run():
+        result = await scorer.score_article(article)
+        assert result.reason == "ok"
+
+    asyncio.run(run())
+
+    assert captured["reasoning_effort"] == "none"
+
+
+def test_score_article_omits_reasoning_effort_when_disabled(monkeypatch):
+    monkeypatch.setattr(config, "OPENAI_API_KEY", "test-key")
+    monkeypatch.setattr(config, "OPENAI_REASONING_EFFORT", None, raising=False)
+    scorer._cache.clear()
+    captured = {}
+    article = make_article(
+        article_id="reasoning-disabled",
+        title="Story",
+        summary="Summary",
+        excerpt="Excerpt",
+    )
+
+    class FakeCompletions:
+        async def create(self, **kwargs):
+            captured["kwargs"] = kwargs
+            return SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(
+                            content='{"novelty":6,"interest":6,"expertise":6,"cultural_relevance":5,"lifestyle_connection":5,"creativity":5,"reason":"ok","summary_ja":"日本語要約","title_ja":"日本語タイトル"}'
+                        )
+                    )
+                ]
+            )
+
+    class FakeChat:
+        def __init__(self):
+            self.completions = FakeCompletions()
+
+    class FakeAsyncOpenAI:
+        def __init__(self, *args, **kwargs):
+            self.chat = FakeChat()
+
+    monkeypatch.setattr(scorer, "AsyncOpenAI", FakeAsyncOpenAI)
+
+    async def run():
+        result = await scorer.score_article(article)
+        assert result.reason == "ok"
+
+    asyncio.run(run())
+
+    assert "reasoning_effort" not in captured["kwargs"]
+
+
 def test_batch_scoring_parses_summary_ja_and_includes_source(monkeypatch):
     monkeypatch.setattr(config, "OPENAI_API_KEY", "test-key")
     monkeypatch.setattr(config, "SCORER_CACHE_VERSION", "test-batch-summary", raising=False)

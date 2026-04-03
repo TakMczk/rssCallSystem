@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-04-03T15:29:58.052053Z",
+  "articles": [
+    {
+      "rank": 1,
+      "id": "recent",
+      "title": "Title recent",
+      "titleJa": null,
+      "url": "https://publisher.example/articles/recent",
+      "source": "https://publisher.example/feed/",
+      "publishedAt": "2026-04-03T14:29:58.051957Z",
+      "freshnessAt": "2026-04-03T14:59:58.051959Z",
+      "summaryJa": "長めのエグゼクティブサマリー長めのエグゼクティブサマリー長めのエグゼクティブサマリー長めのエグゼクティブサマリー長めのエグゼクティブサマリー長めのエグゼクティブサマリー長めのエグゼクティブサマリー長めのエグゼクティブサマリー長めのエグゼクティブサマリー長めのエグゼクティブサマリー",
+      "excerpt": "Excerpt",
+      "reason": "興味深い比較記事",
+      "techScore": 22,
+      "cultureScore": 13,
+      "scores": {
+        "total": 38,
+        "novelty": 8,
+        "interest": 7,
+        "expertise": 7,
+        "culturalRelevance": 5,
+        "lifestyleConnection": 4,
+        "creativity": 4
+      }
+    }
+  ]
+}

@@ -42,6 +42,13 @@ SUMMARY_MAX_CHARS = 240
 TITLE_MAX_CHARS = 140
 _JAPANESE_CHAR_RE = re.compile(r"[ぁ-ゟァ-ヿ一-龯々]")
 
+
+def _chat_completion_reasoning_kwargs() -> dict[str, str]:
+    effort = config.OPENAI_REASONING_EFFORT
+    if not effort:
+        return {}
+    return {"reasoning_effort": effort}
+
 # Templates
 PROMPT_TEMPLATE = """{rules_prompt}
 
@@ -148,7 +155,7 @@ if CACHE_FILE.exists():
 
 def _cache_key(article: Article) -> str:
     raw_key = (
-        f"{config.SCORER_CACHE_VERSION}|{article.url}|"
+        f"{config.SCORER_CACHE_VERSION}|{config.openai_cache_namespace()}|{article.url}|"
         f"{_cache_content_fingerprint(article)}"
     )
     return hashlib.sha256(raw_key.encode()).hexdigest()[:16]
@@ -515,7 +522,7 @@ async def _rewrite_title_for_article(
                     {"role": "user", "content": prompt},
                 ],
                 max_completion_tokens=512,
-                reasoning_effort="minimal",
+                **_chat_completion_reasoning_kwargs(),
                 response_format={"type": "json_object"},
                 timeout=60.0,
             )
@@ -568,7 +575,7 @@ async def _rewrite_titles_for_ranked_articles(
                     {"role": "user", "content": prompt},
                 ],
                 max_completion_tokens=4096,
-                reasoning_effort="minimal",
+                **_chat_completion_reasoning_kwargs(),
                 response_format={"type": "json_object"},
                 timeout=120.0,
             )
@@ -641,7 +648,7 @@ async def _rewrite_summary_for_article(
                     {"role": "user", "content": prompt},
                 ],
                 max_completion_tokens=768,
-                reasoning_effort="minimal",
+                **_chat_completion_reasoning_kwargs(),
                 response_format={"type": "json_object"},
                 timeout=60.0,
             )
@@ -695,7 +702,7 @@ async def _rewrite_summaries_for_ranked_articles(
                     {"role": "user", "content": prompt},
                 ],
                 max_completion_tokens=6144,
-                reasoning_effort="minimal",
+                **_chat_completion_reasoning_kwargs(),
                 response_format={"type": "json_object"},
                 timeout=120.0,
             )
@@ -847,7 +854,7 @@ async def score_article(article: Article) -> ScoreResult:
                     {"role": "user", "content": prompt},
                 ],
                 max_completion_tokens=1024,
-                reasoning_effort="minimal",  # minimal reasoning for cost/performance on this simple scoring task
+                **_chat_completion_reasoning_kwargs(),
                 response_format={"type": "json_object"},
                 timeout=30.0,
             )
@@ -933,8 +940,7 @@ async def score_articles_openai_batch(
                     {"role": "user", "content": prompt},
                 ],
                 max_completion_tokens=16384,
-                # Use minimal reasoning for batch classification to control cost/latency
-                reasoning_effort="minimal",
+                **_chat_completion_reasoning_kwargs(),
                 response_format={"type": "json_object"},
                 timeout=120.0,
             )

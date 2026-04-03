@@ -1,11 +1,11 @@
 # RSS Call System
 
-技術記事を自動収集し、AI（GPT-5-nano）で評価・ランキングして RSS フィードと Web UI 用データを生成するシステムです。
+技術記事を自動収集し、AI（既定: GPT-5.4-nano）で評価・ランキングして RSS フィードと Web UI 用データを生成するシステムです。
 
 ## 特徴
 
-- 🚀 **高速**: GPT-5-nanoで63%高速化（21秒/25記事）
-- 💰 **低コスト**: gpt-4o-miniから67%コスト削減
+- 🚀 **高速**: gpt-5.4-nano が gpt-5-nano 比 40%高速化（12記事 live benchmark: 18.15秒 → 10.81秒）
+- 💰 **許容コスト内**: gpt-5.4-nano は gpt-5-nano 比 2.92x で、移行上限 3.5x 以内
 - 🎯 **高品質**: 6次元スコアリング（新規性、興味性、専門性、文化関連性、生活接続性、創造性）
 - 🧭 **ハイブリッド順位づけ**: LLM総合点に鮮度ボーナスとソース多様性ペナルティを加味
 - 🗂️ **Web UI**: Material UI ベースのカード表示で、要約・スコア・評価理由を一覧化
@@ -18,7 +18,7 @@
 src/
 ├── config.py         # 設定管理
 ├── fetcher.py        # RSS記事取得
-├── scorer.py         # AI評価（GPT-5-nano）
+├── scorer.py         # AI評価（既定: GPT-5.4-nano）
 ├── ranking.py        # ランキング生成
 ├── json_builder.py   # Web UI 向け JSON 構築
 ├── rss_builder.py    # RSS構築
@@ -32,7 +32,7 @@ web/
 ## 必要要件
 
 - Python 3.9+
-- OpenAI API Key（GPT-5-nanoアクセス権）
+- OpenAI API Key（GPT-5.4-nanoアクセス権）
 
 ## セットアップ
 
@@ -60,7 +60,7 @@ OPENAI_API_KEY=your_api_key_here
 OPENAI_ORGANIZATION=your_org_id_here  # Optional
 
 # Model Configuration (optional)
-OPENAI_MODEL=gpt-5-nano  # Default
+OPENAI_MODEL=gpt-5.4-nano  # Default
 
 # RSS reader compatibility (optional)
 # If your reader hides items as duplicates (e.g. Inoreader duplicate filters),
@@ -121,30 +121,32 @@ find . -name '*.pyc' -delete && find . -name '__pycache__' -type d -exec rm -rf 
 - `https://tech.nikkeibp.co.jp/rss/xtech-it.rdf`
 - `https://b.hatena.ne.jp/hotentry/it.rss`
 
-## GPT-5-nanoへの移行
+## GPT-5.4-nanoへの移行
 
-### なぜGPT-5-nano？
+### なぜGPT-5.4-nano？
 
-| 項目 | gpt-4o-mini | gpt-5-nano | 改善 |
-|-----|------------|-----------|------|
-| 入力コスト | $0.15/1M | $0.05/1M | **67%削減** |
-| 出力コスト | $0.60/1M | $0.40/1M | **33%削減** |
-| 処理速度 | 2.33秒/記事 | 1.42秒/記事 | **39%高速化** |
-| Context | 128K | 400K | **3.1倍** |
-| Max Output | 16K | 128K | **8倍** |
+| 項目 | gpt-5-nano | gpt-5.4-nano | 評価 |
+|-----|------------|--------------|------|
+| 入力コスト | $0.05/1M | $0.20/1M | 4.0x |
+| 出力コスト | $0.40/1M | $1.25/1M | 3.1x |
+| 実測コスト（12記事） | $0.001124 | $0.003286 | **2.92x** |
+| 実測速度（12記事） | 18.15秒 | 10.81秒 | **40%高速化** |
+| Context | 400K | 400K | 同等 |
+| Knowledge cutoff | 2024-05-31 | 2025-08-31 | **新しい** |
 
 ### 重要な実装ポイント
 
-GPT-5-nanoは**reasoning model**です。分類タスクでは `reasoning_effort="minimal"` を使用することで、reasoning tokensを0に抑え、コストと速度を最適化できます。
+このリポジトリでは、**モデル系統ごとに reasoning の既定値を切り替え**ます。
 
-```python
-response = await client.chat.completions.create(
-    model="gpt-5-nano",
-    messages=[...],
-    reasoning_effort="minimal",  # 重要: 0 reasoning tokens
-    max_completion_tokens=1024,
-    response_format={"type": "json_object"}
-)
+- `gpt-5.4*`, `gpt-5.2*` → `reasoning_effort="none"`
+- 旧 `gpt-5*` → `reasoning_effort="minimal"`
+
+そのため `src/config.py` の `default_openai_reasoning_effort()` と `OPENAI_REASONING_EFFORT` を通して、Chat Completions API の互換性を吸収しています。あわせてキャッシュキーに **model + reasoning_effort** を含め、モデル比較時にスコアが混ざらないようにしています。
+
+比較用の live benchmark は次で実行できます。
+
+```bash
+./.venv/bin/python scripts/benchmark_openai_models.py --article-limit 12
 ```
 
 詳細は [GPT-5移行ガイド](docs/GPT5_MIGRATION.md) を参照してください。
@@ -176,22 +178,24 @@ response = await client.chat.completions.create(
 
 ## パフォーマンス
 
-### 実測データ（25記事）
+### 実測データ（12記事 live benchmark）
 
 ```
-処理時間: 35.41秒
-API呼び出し: 2回（BATCH_SIZE=20）
-1記事あたり: 1.42秒
-成功率: 100%（25/25記事）
+モデル: gpt-5.4-nano
+処理時間: 10.81秒
+API呼び出し: 1回（BATCH_SIZE=20）
+1記事あたり: 0.90秒
+成功率: 100%（12/12）
+fallback率: 0%
 ```
 
-### コスト見積もり
+### コスト実測（12記事 live benchmark）
 
 ```
-25記事 × 2バッチ × ~170 tokens/記事 = ~4250 tokens
-Input: 4250 × $0.05/1M = $0.0002
-Output: 2500 × $0.40/1M = $0.001
-合計: ~$0.0012/25記事（約$0.00005/記事）
+Input tokens: 3175
+Output tokens: 2121
+Reasoning tokens: 0
+合計: $0.003286/12記事（約$0.000274/記事）
 ```
 
 ## テスト
@@ -208,6 +212,9 @@ cd web && npm run build
 
 # 統合テスト
 python test_integrated.py
+
+# モデル比較ベンチマーク
+./.venv/bin/python scripts/benchmark_openai_models.py --article-limit 12
 ```
 
 ## Web UI のビルド

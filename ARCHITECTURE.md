@@ -79,8 +79,8 @@ RSS Call Systemは、複数のRSSフィードから技術記事を収集し、AI
 **重要パラメータ**:
 
 ```python
-model="gpt-5-nano"
-reasoning_effort="minimal"  # 0 reasoning tokens
+model="gpt-5.4-nano"
+reasoning_effort="none"  # GPT-5.4 系の既定
 max_completion_tokens=1024  # Single
 max_completion_tokens=16384 # Batch
 response_format={"type": "json_object"}
@@ -164,15 +164,15 @@ class ScoreResult:
 - **BATCH_SIZE=20**: 20記事ずつまとめてスコアリング
 - **効果**: API呼び出しを50%削減（例: 25記事 → 2回のAPI呼び出し）
 
-### 2. GPT-5-nano + reasoning_effort="minimal"
+### 2. GPT-5.4-nano + model-aware reasoning
 
-- **reasoning tokens = 0**: 推論トークンなしで分類
-- **効果**: コスト67%削減、速度63%高速化
+- **モデル別既定値**: `gpt-5.4*` / `gpt-5.2*` は `none`、旧 `gpt-5*` は `minimal`
+- **効果**: live benchmark では gpt-5-nano 比 40%高速化、コスト 2.92x で 3.5x 上限内
 
 ### 3. キャッシング
 
 - **ファイル**: `.cache/scores.jsonl`
-- **キー**: `SCORER_CACHE_VERSION + title + url` のハッシュ
+- **キー**: `SCORER_CACHE_VERSION + model + reasoning_effort + url + content fingerprint` のハッシュ
 - **効果**: 同じ記事の再スコアリングを回避
 
 ### 4. 非同期処理
@@ -182,14 +182,13 @@ class ScoreResult:
 
 ## 実測パフォーマンス
 
-| 指標 | gpt-4o-mini | gpt-5-nano | 改善 |
-|-----|-------------|-----------|------|
-| 処理時間（25記事） | 58秒 | 21秒 | **63%高速化** |
-| API呼び出し | 2回 | 2回 | 同じ |
-| 入力コスト | $0.15/1M | $0.05/1M | **67%削減** |
-| 出力コスト | $0.60/1M | $0.40/1M | **33%削減** |
-| Context | 128K | 400K | **3.1倍** |
-| Max Output | 16K | 128K | **8倍** |
+| 指標 | gpt-5-nano | gpt-5.4-nano | 評価 |
+|-----|------------|--------------|------|
+| 処理時間（12記事 live benchmark） | 18.15秒 | 10.81秒 | **40%高速化** |
+| API呼び出し | 1回 | 1回 | 同じ |
+| 実測コスト | $0.001124 | $0.003286 | **2.92x** |
+| Context | 400K | 400K | 同等 |
+| Knowledge cutoff | 2024-05-31 | 2025-08-31 | **新しい** |
 
 ## 設定
 
@@ -201,7 +200,7 @@ OPENAI_API_KEY=your_api_key
 OPENAI_ORGANIZATION=your_org_id  # Optional
 
 # Model Configuration
-OPENAI_MODEL=gpt-5-nano  # Default
+OPENAI_MODEL=gpt-5.4-nano  # Default
 
 # RSS Configuration
 RSS_TITLE="厳選技術記事フィード"
@@ -217,7 +216,7 @@ MAX_SCORE_RETRY=2
 ### config.py
 
 ```python
-OPENAI_MODEL: str = "gpt-5-nano"
+OPENAI_MODEL: str = "gpt-5.4-nano"
 BATCH_SIZE: int = 20
 RETRY_MAX: int = 2
 ```

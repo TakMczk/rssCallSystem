@@ -6,6 +6,33 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+
+def default_openai_reasoning_effort(model: str) -> Optional[str]:
+    normalized = model.strip().lower()
+    if not normalized.startswith("gpt-5"):
+        return None
+    if normalized.startswith(("gpt-5.4", "gpt-5.2")):
+        return "none"
+    return "minimal"
+
+
+def _resolve_openai_reasoning_effort() -> Optional[str]:
+    override = os.getenv("OPENAI_REASONING_EFFORT")
+    if override is not None:
+        override = override.strip()
+        return override or None
+    return default_openai_reasoning_effort(os.getenv("OPENAI_MODEL", "gpt-5-nano"))
+
+
+def openai_cache_namespace(
+    model: Optional[str] = None, reasoning_effort: Optional[str] = None
+) -> str:
+    resolved_model = (model or OPENAI_MODEL).strip().lower()
+    resolved_effort = (
+        OPENAI_REASONING_EFFORT if reasoning_effort is None else reasoning_effort
+    )
+    return f"{resolved_model}|{resolved_effort or 'default'}"
+
 FEED_URLS: List[str] = [
     "https://zenn.dev/feed",
     "https://codezine.jp/rss/new/20/index.xml",
@@ -30,9 +57,10 @@ OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
 OPENAI_ORGANIZATION: Optional[str] = os.getenv(
     "OPENAI_ORGANIZATION"
 )  # Organization ID for project keys
-# Default model: GPT-5-nano, optimized for low-cost, high-throughput classification and similar tasks
-# Cost: $0.05/$0.40 (67% cheaper than gpt-4o-mini), Context: 400K (3.1x), Output: 128K (8x)
-OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5-nano")
+# Default model: GPT-5.4-nano. The GPT-5.4 family uses `none` as the lowest-cost
+# reasoning setting in Chat Completions, while older GPT-5 models use `minimal`.
+OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5.4-nano")
+OPENAI_REASONING_EFFORT: Optional[str] = _resolve_openai_reasoning_effort()
 RETRY_MAX: int = 2
 
 MAX_SCORE_RETRY: int = 3  # Increase retry attempts
@@ -48,7 +76,7 @@ SCORE_CONCURRENCY: int = 2  # Reduce concurrent requests to avoid rate limits
 RATE_LIMIT_DELAY: float = 2.0  # Base delay for rate limit handling
 BATCH_SIZE: int = int(
     os.getenv("BATCH_SIZE", "20")
-)  # Number of articles per batch (optimized for gpt-5-nano)
+)  # Number of articles per batch (tuned for GPT-5 family batch scoring)
 USE_BATCH_SCORING: bool = os.getenv("USE_BATCH_SCORING", "true").lower() == "true"
 SITE_BASE_URL: str = os.getenv("SITE_BASE_URL", "https://example.com/")
 TIME_WINDOW_HOURS: int = int(

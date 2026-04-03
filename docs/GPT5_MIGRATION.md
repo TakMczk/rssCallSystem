@@ -1,4 +1,16 @@
-# GPT-5-nano移行ガイド
+# GPT-5系移行ガイド
+
+## 2026-04 更新: 既定モデルは GPT-5.4-nano
+
+現在の既定モデルは `gpt-5.4-nano` です。`scripts/benchmark_openai_models.py --article-limit 12` の live benchmark では、`gpt-5-nano` 比で **10.81秒 vs 18.15秒（40%高速化）**、**$0.003286 vs $0.001124（2.92x）** となり、許容コスト上限 3.5x の範囲内で移行しました。
+
+あわせて以下を実装しています。
+
+- `gpt-5.4*` / `gpt-5.2*` は `reasoning_effort="none"`、旧 `gpt-5*` は `minimal` を既定にする model-aware config
+- キャッシュキーへ `model + reasoning_effort` を含め、モデル比較や段階移行でスコアが混ざらないようにする
+- live benchmark 用の `scripts/benchmark_openai_models.py`
+
+以下は主に **gpt-4o-mini → gpt-5-nano** 移行時の履歴メモです。
 
 ## 概要
 

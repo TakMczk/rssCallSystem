@@ -158,6 +158,65 @@ def test_score_article_reuses_cache_across_title_changes_when_url_matches(
     assert second.summary_ja == "要約"
 
 
+def test_score_article_invalidates_cache_when_model_changes(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "OPENAI_API_KEY", None)
+    monkeypatch.setattr(config, "SCORER_CACHE_VERSION", "v1", raising=False)
+    monkeypatch.setattr(config, "OPENAI_REASONING_EFFORT", "minimal", raising=False)
+    cache_file = tmp_path / "scores.jsonl"
+    reset_cache(monkeypatch, cache_file)
+    article = make_article("a-model")
+
+    monkeypatch.setattr(config, "OPENAI_MODEL", "gpt-5-nano", raising=False)
+    monkeypatch.setattr(
+        scorer,
+        "_generate_heuristic_score",
+        lambda article: make_score("cached:model-gpt5"),
+    )
+    first = asyncio.run(scorer.score_article(article))
+    assert first.reason == "cached:model-gpt5"
+
+    monkeypatch.setattr(config, "OPENAI_MODEL", "gpt-5.4-nano", raising=False)
+    monkeypatch.setattr(config, "OPENAI_REASONING_EFFORT", "none", raising=False)
+    monkeypatch.setattr(
+        scorer,
+        "_generate_heuristic_score",
+        lambda article: make_score("cached:model-gpt54"),
+    )
+    second = asyncio.run(scorer.score_article(article))
+
+    assert second.reason == "cached:model-gpt54"
+
+
+def test_score_article_invalidates_cache_when_reasoning_effort_changes(
+    monkeypatch, tmp_path
+):
+    monkeypatch.setattr(config, "OPENAI_API_KEY", None)
+    monkeypatch.setattr(config, "SCORER_CACHE_VERSION", "v1", raising=False)
+    monkeypatch.setattr(config, "OPENAI_MODEL", "gpt-5.4-nano", raising=False)
+    cache_file = tmp_path / "scores.jsonl"
+    reset_cache(monkeypatch, cache_file)
+    article = make_article("a-effort")
+
+    monkeypatch.setattr(config, "OPENAI_REASONING_EFFORT", "none", raising=False)
+    monkeypatch.setattr(
+        scorer,
+        "_generate_heuristic_score",
+        lambda article: make_score("cached:effort-none"),
+    )
+    first = asyncio.run(scorer.score_article(article))
+    assert first.reason == "cached:effort-none"
+
+    monkeypatch.setattr(config, "OPENAI_REASONING_EFFORT", "low", raising=False)
+    monkeypatch.setattr(
+        scorer,
+        "_generate_heuristic_score",
+        lambda article: make_score("cached:effort-low"),
+    )
+    second = asyncio.run(scorer.score_article(article))
+
+    assert second.reason == "cached:effort-low"
+
+
 def test_score_article_invalidates_cache_when_content_changes_for_same_url(
     monkeypatch, tmp_path
 ):
