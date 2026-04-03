@@ -30,3 +30,9 @@ export type FeedPayload = {
   generatedAt: string
   articles: FeedArticle[]
 }
+
+export type HistoryIndexPayload = {
+  schemaVersion: string
+  latestDate: string | null
+  availableDates: string[]
+}

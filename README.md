@@ -219,7 +219,7 @@ cd web
 npm run build:pages
 ```
 
-このコマンドは `web/dist` を生成したあと、`docs/index.html` と `docs/assets/**` のみを更新します。`docs/rss.xml`、`docs/data.json`、`docs/images/**`、`docs/*.md` は保持されます。
+このコマンドは `web/dist` を生成したあと、`docs/index.html` と `docs/assets/**` のみを更新します。`docs/rss.xml`、`docs/data.json`、`docs/history/**`、`docs/images/**`、`docs/*.md` は保持されます。
 
 ### 注意事項
 

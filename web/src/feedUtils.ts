@@ -1,4 +1,4 @@
-import type { FeedArticle, FeedPayload } from './types'
+import type { FeedArticle, FeedPayload, HistoryIndexPayload } from './types'
 
 export type SortMode = 'recommended' | 'score' | 'latest'
 export type CategoryMode = 'all' | 'tech' | 'culture'
@@ -34,6 +34,14 @@ export function getSourceLabel(source: string): string {
   return SOURCE_LABELS[hostname] ?? hostname
 }
 
+function parseHistoryDate(value: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null
+  }
+  const date = new Date(`${value}T00:00:00+09:00`)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 export function formatDate(value: string | null): string {
   if (!value) {
     return '未設定'
@@ -49,6 +57,22 @@ export function formatDate(value: string | null): string {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+  }).format(date)
+}
+
+export function formatHistoryDate(value: string | null): string {
+  if (!value) {
+    return '未設定'
+  }
+  const date = parseHistoryDate(value)
+  if (!date) {
+    return '不明'
+  }
+  return new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   }).format(date)
 }
 
@@ -106,6 +130,35 @@ export function isFeedPayload(value: unknown): value is FeedPayload {
     typeof payload.generatedAt === 'string' &&
     Array.isArray(payload.articles)
   )
+}
+
+export function isHistoryIndexPayload(value: unknown): value is HistoryIndexPayload {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+  const payload = value as Partial<HistoryIndexPayload>
+  return (
+    typeof payload.schemaVersion === 'string' &&
+    (payload.latestDate === null || typeof payload.latestDate === 'string') &&
+    Array.isArray(payload.availableDates) &&
+    payload.availableDates.every((date) => typeof date === 'string')
+  )
+}
+
+export function getAdjacentHistoryDate(
+  availableDates: string[],
+  currentDate: string | null,
+  direction: 'older' | 'newer',
+): string | null {
+  if (!currentDate) {
+    return null
+  }
+  const currentIndex = availableDates.indexOf(currentDate)
+  if (currentIndex === -1) {
+    return null
+  }
+  const nextIndex = direction === 'older' ? currentIndex + 1 : currentIndex - 1
+  return availableDates[nextIndex] ?? null
 }
 
 function stripRankSuffix(title: string): string {

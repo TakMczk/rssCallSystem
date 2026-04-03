@@ -59,7 +59,8 @@ export function AboutDialog({
               最終更新: {generatedAt ? formatDate(generatedAt) : '取得中'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              `docs/data.json` と `docs/rss.xml` をベースに GitHub Pages 上で公開します。
+              最新表示は `docs/data.json` と `docs/rss.xml` を使い、日別履歴は
+              `docs/history/YYYY-MM-DD.json` と `docs/history/index.json` として公開します。
             </Typography>
           </Stack>
         </Stack>

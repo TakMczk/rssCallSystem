@@ -2,10 +2,11 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 
 from . import config
 from .fetcher import _DEF_PUB_DT, fetch_all_feeds, normalize
-from .json_builder import build_json_feed
+from .json_builder import build_history_index, build_json_feed
 from .scorer import ensure_ranked_summaries, ensure_ranked_titles, score_articles
 from .ranking import sort_ranked
 from .rss_builder import build_rss
@@ -14,6 +15,7 @@ from .logging_utils import get_logger
 
 logger = get_logger(__name__)
 _MAX_DEFAULT_PUBLISHED_FUTURE_SKEW = timedelta(hours=1)
+_JST = ZoneInfo("Asia/Tokyo")
 
 
 def _recent_article_grace_cutoff(current_time: datetime, hours: int) -> datetime:
@@ -54,6 +56,42 @@ def filter_recent_articles(articles: list[Article], hours: int) -> list[Article]
     return filtered
 
 
+def _history_date_key(generated_at: datetime) -> str:
+    return generated_at.astimezone(_JST).date().isoformat()
+
+
+def _history_snapshot_dates(history_dir: Path) -> list[str]:
+    dates: list[str] = []
+    for path in history_dir.glob("*.json"):
+        if path.name == "index.json":
+            continue
+        try:
+            datetime.strptime(path.stem, "%Y-%m-%d")
+        except ValueError:
+            continue
+        dates.append(path.stem)
+    return sorted(set(dates), reverse=True)
+
+
+def _write_history_outputs(json_text: str, generated_at: datetime) -> None:
+    history_dir = Path(config.OUTPUT_HISTORY_DIR)
+    history_index_path = Path(config.OUTPUT_HISTORY_INDEX_PATH)
+    history_dir.mkdir(parents=True, exist_ok=True)
+    history_index_path.parent.mkdir(parents=True, exist_ok=True)
+
+    history_date = _history_date_key(generated_at)
+    snapshot_path = history_dir / f"{history_date}.json"
+    snapshot_path.write_text(json_text, encoding="utf-8")
+
+    available_dates = _history_snapshot_dates(history_dir)
+    history_index_path.write_text(
+        build_history_index(available_dates), encoding="utf-8"
+    )
+
+    logger.info(f"wrote history snapshot: {snapshot_path}")
+    logger.info(f"wrote history index: {history_index_path} ({len(available_dates)} days)")
+
+
 async def run():
     logger.info("start pipeline")
     out_path = Path(config.OUTPUT_RSS_PATH)
@@ -74,7 +112,9 @@ async def run():
         if pre_filter_count > 0:
             generated_at = datetime.now(timezone.utc)
             out_path.write_text(build_rss([]), encoding="utf-8")
-            json_path.write_text(build_json_feed([], generated_at=generated_at), encoding="utf-8")
+            json_text = build_json_feed([], generated_at=generated_at)
+            json_path.write_text(json_text, encoding="utf-8")
+            _write_history_outputs(json_text, generated_at)
             logger.info(f"wrote rss: {out_path} (0 items)")
             logger.info(f"wrote json: {json_path} (0 items)")
         else:
@@ -95,6 +135,7 @@ async def run():
     json_text = build_json_feed(ranked_sorted, generated_at=generated_at)
     out_path.write_text(rss_xml, encoding="utf-8")
     json_path.write_text(json_text, encoding="utf-8")
+    _write_history_outputs(json_text, generated_at)
     logger.info(f"wrote rss: {out_path} ({len(ranked_sorted)} items)")
     logger.info(f"wrote json: {json_path} ({len(ranked_sorted)} items)")
 

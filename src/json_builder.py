@@ -50,3 +50,13 @@ def build_json_feed(
         ],
     }
     return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+def build_history_index(available_dates: Iterable[str]) -> str:
+    dates = list(available_dates)
+    payload = {
+        "schemaVersion": "1.0",
+        "latestDate": dates[0] if dates else None,
+        "availableDates": dates,
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2)

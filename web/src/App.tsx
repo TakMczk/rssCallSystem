@@ -30,13 +30,16 @@ import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import PublicIcon from '@mui/icons-material/Public'
 import UpdateIcon from '@mui/icons-material/Update'
-import type { FeedPayload } from './types'
+import type { FeedPayload, HistoryIndexPayload } from './types'
 import {
   type CategoryMode,
   type SortMode,
   formatDate,
+  formatHistoryDate,
+  getAdjacentHistoryDate,
   getSourceLabel,
   isFeedPayload,
+  isHistoryIndexPayload,
   parseLegacyRssFeed,
   sortArticles,
 } from './feedUtils'
@@ -44,7 +47,51 @@ import { AboutDialog } from './components/AboutDialog'
 import { ArticleCard } from './components/ArticleCard'
 
 type ThemeMode = 'light' | 'dark'
-type DataOrigin = 'json' | 'rss-fallback'
+type DataOrigin = 'latest-json' | 'history-json' | 'rss-fallback'
+type HistoryMode = 'pending' | 'enabled' | 'disabled'
+type ErrorSeverity = 'warning' | 'error'
+
+class HistorySnapshotNotFoundError extends Error {
+  constructor(date: string) {
+    super(`${formatHistoryDate(date)} の履歴データはまだ保存されていません`)
+    this.name = 'HistorySnapshotNotFoundError'
+  }
+}
+
+async function loadLatestFeed(): Promise<{ payload: FeedPayload; dataOrigin: DataOrigin }> {
+  const response = await fetch('./data.json', { cache: 'no-store' })
+  if (response.ok) {
+    const data: unknown = await response.json()
+    if (!isFeedPayload(data)) {
+      throw new Error('data.json の形式が想定と異なります')
+    }
+    return { payload: data, dataOrigin: 'latest-json' }
+  }
+
+  const rssResponse = await fetch('./rss.xml', { cache: 'no-store' })
+  if (!rssResponse.ok) {
+    throw new Error(
+      `data.json (${response.status}) と rss.xml (${rssResponse.status}) の取得に失敗しました`,
+    )
+  }
+  const rssText = await rssResponse.text()
+  return { payload: parseLegacyRssFeed(rssText), dataOrigin: 'rss-fallback' }
+}
+
+async function loadHistoryIndex(): Promise<HistoryIndexPayload | null> {
+  const response = await fetch('./history/index.json', { cache: 'no-store' })
+  if (response.status === 404) {
+    return null
+  }
+  if (!response.ok) {
+    throw new Error(`history/index.json (${response.status}) の取得に失敗しました`)
+  }
+  const data: unknown = await response.json()
+  if (!isHistoryIndexPayload(data)) {
+    throw new Error('history/index.json の形式が想定と異なります')
+  }
+  return data
+}
 
 function createAppTheme(mode: ThemeMode) {
   return createTheme({
@@ -81,7 +128,12 @@ function App() {
   const [payload, setPayload] = useState<FeedPayload | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [errorSeverity, setErrorSeverity] = useState<ErrorSeverity>('error')
+  const [historyNotice, setHistoryNotice] = useState<string | null>(null)
   const [dataOrigin, setDataOrigin] = useState<DataOrigin | null>(null)
+  const [historyIndex, setHistoryIndex] = useState<HistoryIndexPayload | null>(null)
+  const [historyMode, setHistoryMode] = useState<HistoryMode>('pending')
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [themeMode, setThemeMode] = useState<ThemeMode>('light')
   const [sourceFilter, setSourceFilter] = useState<string>('all')
   const [sortMode, setSortMode] = useState<SortMode>('recommended')
@@ -104,38 +156,88 @@ function App() {
   useEffect(() => {
     let active = true
 
-    async function load() {
+    async function loadIndex() {
+      try {
+        const data = await loadHistoryIndex()
+        if (!active) {
+          return
+        }
+        setHistoryIndex(data)
+        setHistoryNotice(null)
+        if (data?.latestDate) {
+          setSelectedDate((current) =>
+            current && data.availableDates.includes(current) ? current : data.latestDate,
+          )
+          setHistoryMode('enabled')
+          return
+        }
+        setHistoryMode('disabled')
+        setSelectedDate(null)
+      } catch (err) {
+        if (active) {
+          setHistoryMode('disabled')
+          setSelectedDate(null)
+          setHistoryNotice(
+            err instanceof Error
+              ? `${err.message}。履歴一覧を読めなかったため最新結果を表示します。`
+              : '履歴一覧を読み込めなかったため最新結果を表示します。',
+          )
+        }
+      }
+    }
+
+    void loadIndex()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadPayload() {
       try {
         setLoading(true)
         setError(null)
-        const response = await fetch('./data.json', { cache: 'no-store' })
-        if (response.ok) {
+        setErrorSeverity('error')
+
+        if (historyMode === 'enabled') {
+          if (!selectedDate) {
+            return
+          }
+          const response = await fetch(`./history/${selectedDate}.json`, { cache: 'no-store' })
+          if (response.status === 404) {
+            throw new HistorySnapshotNotFoundError(selectedDate)
+          }
+          if (!response.ok) {
+            throw new Error(
+              `${formatHistoryDate(selectedDate)} の履歴データを読み込めませんでした (${response.status})`,
+            )
+          }
           const data: unknown = await response.json()
           if (!isFeedPayload(data)) {
-            throw new Error('data.json の形式が想定と異なります')
+            throw new Error(`./history/${selectedDate}.json の形式が想定と異なります`)
           }
           if (active) {
             setPayload(data)
-            setDataOrigin('json')
+            setDataOrigin('history-json')
           }
           return
         }
 
-        const rssResponse = await fetch('./rss.xml', { cache: 'no-store' })
-        if (!rssResponse.ok) {
-          throw new Error(
-            `data.json (${response.status}) と rss.xml (${rssResponse.status}) の取得に失敗しました`,
-          )
-        }
-        const rssText = await rssResponse.text()
-        const rssPayload = parseLegacyRssFeed(rssText)
-        if (active) {
-          setPayload(rssPayload)
-          setDataOrigin('rss-fallback')
+        if (historyMode === 'disabled') {
+          const latest = await loadLatestFeed()
+          if (active) {
+            setPayload(latest.payload)
+            setDataOrigin(latest.dataOrigin)
+          }
         }
       } catch (err) {
         if (active) {
-          setError(err instanceof Error ? err.message : '不明なエラーが発生しました')
+          const message = err instanceof Error ? err.message : '不明なエラーが発生しました'
+          setError(message)
+          setErrorSeverity(err instanceof HistorySnapshotNotFoundError ? 'warning' : 'error')
         }
       } finally {
         if (active) {
@@ -144,14 +246,28 @@ function App() {
       }
     }
 
-    void load()
+    if (historyMode === 'pending') {
+      return
+    }
+
+    void loadPayload()
 
     return () => {
       active = false
     }
-  }, [])
+  }, [historyMode, selectedDate])
 
   const theme = useMemo(() => createAppTheme(themeMode), [themeMode])
+
+  useEffect(() => {
+    if (
+      sourceFilter !== 'all' &&
+      payload &&
+      !payload.articles.some((article) => article.source === sourceFilter)
+    ) {
+      setSourceFilter('all')
+    }
+  }, [payload, sourceFilter])
 
   const sourceOptions = useMemo(() => {
     const labels = new Map<string, string>()
@@ -172,6 +288,9 @@ function App() {
 
   const topArticle = filteredArticles[0] ?? null
   const remainingArticles = topArticle ? filteredArticles.slice(1) : filteredArticles
+  const historyDates = historyIndex?.availableDates ?? []
+  const previousDate = getAdjacentHistoryDate(historyDates, selectedDate, 'older')
+  const nextDate = getAdjacentHistoryDate(historyDates, selectedDate, 'newer')
 
   return (
     <ThemeProvider theme={theme}>
@@ -206,6 +325,9 @@ function App() {
                 size="small"
                 variant="outlined"
               />
+              {selectedDate ? (
+                <Chip label={`表示日 ${formatHistoryDate(selectedDate)}`} size="small" variant="outlined" />
+              ) : null}
             </Stack>
 
             <Button
@@ -269,7 +391,68 @@ function App() {
               </Card>
             ) : null}
 
-            {error ? <Alert severity="error">{error}</Alert> : null}
+            {historyNotice ? <Alert severity="info">{historyNotice}</Alert> : null}
+
+            {historyDates.length > 0 ? (
+              <Card>
+                <CardContent>
+                  <Stack spacing={2}>
+                    <Box>
+                      <Typography variant="overline" color="text.secondary">
+                        履歴閲覧
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        最新日を初期表示し、保存済みの日付へ移動できます。
+                      </Typography>
+                    </Box>
+
+                    <Stack
+                      direction={{ xs: 'column', md: 'row' }}
+                      spacing={1.5}
+                      alignItems={{ xs: 'stretch', md: 'center' }}
+                    >
+                      <Button
+                        variant="outlined"
+                        onClick={() => previousDate && setSelectedDate(previousDate)}
+                        disabled={!previousDate || loading}
+                      >
+                        前日
+                      </Button>
+
+                      <FormControl
+                        size="small"
+                        sx={{ width: { xs: '100%', md: 'auto' }, minWidth: { md: 220 } }}
+                      >
+                        <InputLabel id="history-date-label">表示日</InputLabel>
+                        <Select
+                          labelId="history-date-label"
+                          label="表示日"
+                          value={selectedDate ?? ''}
+                          onChange={(event) => setSelectedDate(event.target.value)}
+                        >
+                          {historyDates.map((date) => (
+                            <MenuItem key={date} value={date}>
+                              {formatHistoryDate(date)}
+                              {date === historyIndex?.latestDate ? ' (最新)' : ''}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+
+                      <Button
+                        variant="outlined"
+                        onClick={() => nextDate && setSelectedDate(nextDate)}
+                        disabled={!nextDate || loading}
+                      >
+                        翌日
+                      </Button>
+                    </Stack>
+                  </Stack>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {error ? <Alert severity={errorSeverity}>{error}</Alert> : null}
 
             {!loading && !error && dataOrigin === 'rss-fallback' ? (
               <Alert severity="info">
