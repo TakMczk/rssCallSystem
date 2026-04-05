@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react'
 import {
   Alert,
   AppBar,
@@ -45,6 +45,8 @@ import {
 } from './feedUtils'
 import { AboutDialog } from './components/AboutDialog'
 import { ArticleCard } from './components/ArticleCard'
+
+const HistoryDateNavigator = lazy(() => import('./components/HistoryDateNavigator'))
 
 type ThemeMode = 'light' | 'dark'
 type DataOrigin = 'latest-json' | 'history-json' | 'rss-fallback'
@@ -288,7 +290,7 @@ function App() {
 
   const topArticle = filteredArticles[0] ?? null
   const remainingArticles = topArticle ? filteredArticles.slice(1) : filteredArticles
-  const historyDates = historyIndex?.availableDates ?? []
+  const historyDates = useMemo(() => historyIndex?.availableDates ?? [], [historyIndex])
   const previousDate = getAdjacentHistoryDate(historyDates, selectedDate, 'older')
   const nextDate = getAdjacentHistoryDate(historyDates, selectedDate, 'newer')
 
@@ -395,59 +397,18 @@ function App() {
 
             {historyDates.length > 0 ? (
               <Card>
-                <CardContent>
-                  <Stack spacing={2}>
-                    <Box>
-                      <Typography variant="overline" color="text.secondary">
-                        履歴閲覧
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        最新日を初期表示し、保存済みの日付へ移動できます。
-                      </Typography>
-                    </Box>
-
-                    <Stack
-                      direction={{ xs: 'column', md: 'row' }}
-                      spacing={1.5}
-                      alignItems={{ xs: 'stretch', md: 'center' }}
-                    >
-                      <Button
-                        variant="outlined"
-                        onClick={() => previousDate && setSelectedDate(previousDate)}
-                        disabled={!previousDate || loading}
-                      >
-                        前日
-                      </Button>
-
-                      <FormControl
-                        size="small"
-                        sx={{ width: { xs: '100%', md: 'auto' }, minWidth: { md: 220 } }}
-                      >
-                        <InputLabel id="history-date-label">表示日</InputLabel>
-                        <Select
-                          labelId="history-date-label"
-                          label="表示日"
-                          value={selectedDate ?? ''}
-                          onChange={(event) => setSelectedDate(event.target.value)}
-                        >
-                          {historyDates.map((date) => (
-                            <MenuItem key={date} value={date}>
-                              {formatHistoryDate(date)}
-                              {date === historyIndex?.latestDate ? ' (最新)' : ''}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-
-                      <Button
-                        variant="outlined"
-                        onClick={() => nextDate && setSelectedDate(nextDate)}
-                        disabled={!nextDate || loading}
-                      >
-                        翌日
-                      </Button>
-                    </Stack>
-                  </Stack>
+                <CardContent sx={{ py: 1.5, '&:last-child': { pb: 1.5 } }}>
+                  <Suspense fallback={<Box sx={{ minHeight: 40 }} />}>
+                    <HistoryDateNavigator
+                      historyDates={historyDates}
+                      latestDate={historyIndex?.latestDate ?? null}
+                      selectedDate={selectedDate}
+                      previousDate={previousDate}
+                      nextDate={nextDate}
+                      loading={loading}
+                      onSelectDate={setSelectedDate}
+                    />
+                  </Suspense>
                 </CardContent>
               </Card>
             ) : null}
