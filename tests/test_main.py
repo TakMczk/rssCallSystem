@@ -4,12 +4,24 @@ import os
 import sys
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.fetcher import _DEF_PUB_DT
 from src import config, main
 from src.main import filter_recent_articles
 from src.models import Article, ScoreResult
+
+
+@pytest.fixture(autouse=True)
+def isolate_history_outputs(monkeypatch, tmp_path):
+    history_dir = tmp_path / "history"
+    history_index_path = history_dir / "index.json"
+    monkeypatch.setattr(config, "OUTPUT_HISTORY_DIR", str(history_dir), raising=False)
+    monkeypatch.setattr(
+        config, "OUTPUT_HISTORY_INDEX_PATH", str(history_index_path), raising=False
+    )
 
 
 def make_article(
