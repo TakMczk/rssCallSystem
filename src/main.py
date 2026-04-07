@@ -1,7 +1,7 @@
 from __future__ import annotations
 import asyncio
 from pathlib import Path
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
 from . import config
@@ -15,6 +15,7 @@ from .logging_utils import get_logger
 
 logger = get_logger(__name__)
 _MAX_DEFAULT_PUBLISHED_FUTURE_SKEW = timedelta(hours=1)
+_HISTORY_RETENTION_DAYS = 30
 _JST = ZoneInfo("Asia/Tokyo")
 
 
@@ -60,17 +61,36 @@ def _history_date_key(generated_at: datetime) -> str:
     return generated_at.astimezone(_JST).date().isoformat()
 
 
+def _parse_history_snapshot_date(path: Path) -> date | None:
+    if path.name == "index.json":
+        return None
+    try:
+        return datetime.strptime(path.stem, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
 def _history_snapshot_dates(history_dir: Path) -> list[str]:
     dates: list[str] = []
     for path in history_dir.glob("*.json"):
-        if path.name == "index.json":
+        snapshot_date = _parse_history_snapshot_date(path)
+        if snapshot_date is None:
             continue
-        try:
-            datetime.strptime(path.stem, "%Y-%m-%d")
-        except ValueError:
-            continue
-        dates.append(path.stem)
+        dates.append(snapshot_date.isoformat())
     return sorted(set(dates), reverse=True)
+
+
+def _prune_expired_history_snapshots(history_dir: Path, reference_date: date) -> int:
+    retention_cutoff = reference_date - timedelta(days=_HISTORY_RETENTION_DAYS)
+    removed = 0
+    for path in history_dir.glob("*.json"):
+        snapshot_date = _parse_history_snapshot_date(path)
+        if snapshot_date is None or snapshot_date >= retention_cutoff:
+            continue
+        path.unlink()
+        removed += 1
+        logger.info(f"removed expired history snapshot: {path}")
+    return removed
 
 
 def _write_history_outputs(json_text: str, generated_at: datetime) -> None:
@@ -83,12 +103,17 @@ def _write_history_outputs(json_text: str, generated_at: datetime) -> None:
     snapshot_path = history_dir / f"{history_date}.json"
     snapshot_path.write_text(json_text, encoding="utf-8")
 
+    removed = _prune_expired_history_snapshots(
+        history_dir, generated_at.astimezone(_JST).date()
+    )
     available_dates = _history_snapshot_dates(history_dir)
     history_index_path.write_text(
         build_history_index(available_dates), encoding="utf-8"
     )
 
     logger.info(f"wrote history snapshot: {snapshot_path}")
+    if removed:
+        logger.info(f"pruned history snapshots: {removed}")
     logger.info(f"wrote history index: {history_index_path} ({len(available_dates)} days)")
 
 

@@ -382,6 +382,148 @@ def test_run_writes_history_snapshot_and_rebuilds_index_using_jst_date(
     }
 
 
+def test_run_prunes_history_snapshots_older_than_30_days(monkeypatch, tmp_path):
+    output_path = tmp_path / "rss.xml"
+    json_path = tmp_path / "data.json"
+    history_dir = tmp_path / "history"
+    history_index_path = history_dir / "index.json"
+    history_dir.mkdir(parents=True)
+    (history_dir / "2026-03-30.json").write_text('{"schemaVersion":"1.0"}', encoding="utf-8")
+    (history_dir / "2026-03-31.json").write_text('{"schemaVersion":"1.0"}', encoding="utf-8")
+    history_index_path.write_text('{"stale": true}', encoding="utf-8")
+    monkeypatch.setattr(config, "OUTPUT_RSS_PATH", str(output_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_JSON_PATH", str(json_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_HISTORY_DIR", str(history_dir), raising=False)
+    monkeypatch.setattr(
+        config, "OUTPUT_HISTORY_INDEX_PATH", str(history_index_path), raising=False
+    )
+    monkeypatch.setattr(
+        config, "FEED_URLS", ["https://example.com/feed"], raising=False
+    )
+    set_fixed_now(monkeypatch, datetime(2026, 4, 30, 3, 0, tzinfo=timezone.utc))
+
+    article = make_article(
+        "recent",
+        published_at=FixedDateTime.fixed_now - timedelta(hours=1),
+        freshness_at=FixedDateTime.fixed_now - timedelta(minutes=20),
+    )
+
+    async def fake_fetch_all_feeds(urls):
+        return ["raw-item"]
+
+    async def fake_score_articles(articles):
+        return [
+            ScoreResult(
+                novelty=8,
+                interest=7,
+                expertise=7,
+                cultural_relevance=5,
+                lifestyle_connection=4,
+                creativity=4,
+                reason="興味深い比較記事",
+                summary_ja="英語記事の要点を日本語で要約",
+                title_ja="英語記事の日本語タイトル",
+            )
+        ]
+
+    async def passthrough_ranked_summaries(ranked):
+        return ranked
+
+    async def passthrough_ranked_titles(ranked):
+        return ranked
+
+    monkeypatch.setattr(main, "fetch_all_feeds", fake_fetch_all_feeds)
+    monkeypatch.setattr(main, "normalize", lambda raw: [article])
+    monkeypatch.setattr(main, "score_articles", fake_score_articles)
+    monkeypatch.setattr(main, "sort_ranked", lambda ranked: ranked)
+    monkeypatch.setattr(main, "ensure_ranked_summaries", passthrough_ranked_summaries)
+    monkeypatch.setattr(main, "ensure_ranked_titles", passthrough_ranked_titles)
+
+    asyncio.run(main.run())
+
+    index_payload = json.loads(history_index_path.read_text(encoding="utf-8"))
+
+    assert not (history_dir / "2026-03-30.json").exists()
+    assert (history_dir / "2026-03-31.json").exists()
+    assert (history_dir / "2026-04-30.json").exists()
+    assert index_payload == {
+        "schemaVersion": "1.0",
+        "latestDate": "2026-04-30",
+        "availableDates": ["2026-04-30", "2026-03-31"],
+    }
+
+
+def test_run_prunes_history_snapshots_using_jst_reference_date(monkeypatch, tmp_path):
+    output_path = tmp_path / "rss.xml"
+    json_path = tmp_path / "data.json"
+    history_dir = tmp_path / "history"
+    history_index_path = history_dir / "index.json"
+    history_dir.mkdir(parents=True)
+    (history_dir / "2026-03-31.json").write_text('{"schemaVersion":"1.0"}', encoding="utf-8")
+    (history_dir / "2026-04-01.json").write_text('{"schemaVersion":"1.0"}', encoding="utf-8")
+    history_index_path.write_text('{"stale": true}', encoding="utf-8")
+    monkeypatch.setattr(config, "OUTPUT_RSS_PATH", str(output_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_JSON_PATH", str(json_path), raising=False)
+    monkeypatch.setattr(config, "OUTPUT_HISTORY_DIR", str(history_dir), raising=False)
+    monkeypatch.setattr(
+        config, "OUTPUT_HISTORY_INDEX_PATH", str(history_index_path), raising=False
+    )
+    monkeypatch.setattr(
+        config, "FEED_URLS", ["https://example.com/feed"], raising=False
+    )
+    set_fixed_now(monkeypatch, datetime(2026, 4, 30, 15, 30, tzinfo=timezone.utc))
+
+    article = make_article(
+        "recent",
+        published_at=FixedDateTime.fixed_now - timedelta(hours=1),
+        freshness_at=FixedDateTime.fixed_now - timedelta(minutes=20),
+    )
+
+    async def fake_fetch_all_feeds(urls):
+        return ["raw-item"]
+
+    async def fake_score_articles(articles):
+        return [
+            ScoreResult(
+                novelty=8,
+                interest=7,
+                expertise=7,
+                cultural_relevance=5,
+                lifestyle_connection=4,
+                creativity=4,
+                reason="興味深い比較記事",
+                summary_ja="英語記事の要点を日本語で要約",
+                title_ja="英語記事の日本語タイトル",
+            )
+        ]
+
+    async def passthrough_ranked_summaries(ranked):
+        return ranked
+
+    async def passthrough_ranked_titles(ranked):
+        return ranked
+
+    monkeypatch.setattr(main, "fetch_all_feeds", fake_fetch_all_feeds)
+    monkeypatch.setattr(main, "normalize", lambda raw: [article])
+    monkeypatch.setattr(main, "score_articles", fake_score_articles)
+    monkeypatch.setattr(main, "sort_ranked", lambda ranked: ranked)
+    monkeypatch.setattr(main, "ensure_ranked_summaries", passthrough_ranked_summaries)
+    monkeypatch.setattr(main, "ensure_ranked_titles", passthrough_ranked_titles)
+
+    asyncio.run(main.run())
+
+    index_payload = json.loads(history_index_path.read_text(encoding="utf-8"))
+
+    assert not (history_dir / "2026-03-31.json").exists()
+    assert (history_dir / "2026-04-01.json").exists()
+    assert (history_dir / "2026-05-01.json").exists()
+    assert index_payload == {
+        "schemaVersion": "1.0",
+        "latestDate": "2026-05-01",
+        "availableDates": ["2026-05-01", "2026-04-01"],
+    }
+
+
 def test_run_writes_empty_history_snapshot_when_no_recent_articles(monkeypatch, tmp_path):
     output_path = tmp_path / "rss.xml"
     json_path = tmp_path / "data.json"
