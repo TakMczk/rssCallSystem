@@ -58,9 +58,10 @@ OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
 OPENAI_ORGANIZATION: Optional[str] = os.getenv(
     "OPENAI_ORGANIZATION"
 )  # Organization ID for project keys
-# Default model: GPT-5.4-nano. The GPT-5.4 family uses `none` as the lowest-cost
-# reasoning setting in Chat Completions, while older GPT-5 models use `minimal`.
-OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5.4-nano")
+# Default model: GPT-5-nano for lower-cost high-volume scoring. The GPT-5.4 family
+# uses `none` as the lowest-cost reasoning setting in Chat Completions, while
+# older GPT-5 models use `minimal`.
+OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-5-nano")
 OPENAI_REASONING_EFFORT: Optional[str] = _resolve_openai_reasoning_effort(OPENAI_MODEL)
 RETRY_MAX: int = 2
 
