@@ -79,8 +79,8 @@ RSS Call Systemは、複数のRSSフィードから技術記事を収集し、AI
 **重要パラメータ**:
 
 ```python
-model="gpt-5.4-nano"
-reasoning_effort="none"  # GPT-5.4 系の既定
+model="gpt-5-nano"
+reasoning_effort="minimal"  # 既定
 max_completion_tokens=1024  # Single
 max_completion_tokens=16384 # Batch
 response_format={"type": "json_object"}
@@ -164,10 +164,10 @@ class ScoreResult:
 - **BATCH_SIZE=20**: 20記事ずつまとめてスコアリング
 - **効果**: API呼び出しを50%削減（例: 25記事 → 2回のAPI呼び出し）
 
-### 2. GPT-5.4-nano + model-aware reasoning
+### 2. GPT-5-nano default + model-aware reasoning
 
 - **モデル別既定値**: `gpt-5.4*` / `gpt-5.2*` は `none`、旧 `gpt-5*` は `minimal`
-- **効果**: live benchmark では gpt-5-nano 比 40%高速化、コスト 2.92x で 3.5x 上限内
+- **運用方針**: 既定は `gpt-5-nano` でコスト最適化しつつ、必要なら `gpt-5.4-nano` に切り替え可能
 
 ### 3. キャッシング
 
@@ -200,7 +200,7 @@ OPENAI_API_KEY=your_api_key
 OPENAI_ORGANIZATION=your_org_id  # Optional
 
 # Model Configuration
-OPENAI_MODEL=gpt-5.4-nano  # Default
+OPENAI_MODEL=gpt-5-nano  # Default
 
 # RSS Configuration
 RSS_TITLE="厳選技術記事フィード"
@@ -216,7 +216,7 @@ MAX_SCORE_RETRY=2
 ### config.py
 
 ```python
-OPENAI_MODEL: str = "gpt-5.4-nano"
+OPENAI_MODEL: str = "gpt-5-nano"
 BATCH_SIZE: int = 20
 RETRY_MAX: int = 2
 ```

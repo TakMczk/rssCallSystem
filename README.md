@@ -1,11 +1,11 @@
 # RSS Call System
 
-技術記事を自動収集し、AI（既定: GPT-5.4-nano）で評価・ランキングして RSS フィードと Web UI 用データを生成するシステムです。
+技術記事を自動収集し、AI（既定: GPT-5-nano）で評価・ランキングして RSS フィードと Web UI 用データを生成するシステムです。
 
 ## 特徴
 
-- 🚀 **高速**: gpt-5.4-nano が gpt-5-nano 比 40%高速化（12記事 live benchmark: 18.15秒 → 10.81秒）
-- 💰 **許容コスト内**: gpt-5.4-nano は gpt-5-nano 比 2.92x で、移行上限 3.5x 以内
+- 💰 **低コスト運用**: 既定の gpt-5-nano で高頻度実行時の API 使用量を抑制
+- ⚖️ **切り替え可能**: `OPENAI_MODEL` で gpt-5.4-nano に上書きして速度優先にもできる
 - 🎯 **高品質**: 6次元スコアリング（新規性、興味性、専門性、文化関連性、生活接続性、創造性）
 - 🧭 **ハイブリッド順位づけ**: LLM総合点に鮮度ボーナスとソース多様性ペナルティを加味
 - 🗂️ **Web UI**: Material UI ベースのカード表示で、要約・スコア・評価理由を一覧化
@@ -18,7 +18,7 @@
 src/
 ├── config.py         # 設定管理
 ├── fetcher.py        # RSS記事取得
-├── scorer.py         # AI評価（既定: GPT-5.4-nano）
+├── scorer.py         # AI評価（既定: GPT-5-nano）
 ├── ranking.py        # ランキング生成
 ├── json_builder.py   # Web UI 向け JSON 構築
 ├── rss_builder.py    # RSS構築
@@ -32,7 +32,7 @@ web/
 ## 必要要件
 
 - Python 3.9+
-- OpenAI API Key（GPT-5.4-nanoアクセス権）
+- OpenAI API Key（GPT-5-nanoアクセス権）
 
 ## セットアップ
 
@@ -60,7 +60,7 @@ OPENAI_API_KEY=your_api_key_here
 OPENAI_ORGANIZATION=your_org_id_here  # Optional
 
 # Model Configuration (optional)
-OPENAI_MODEL=gpt-5.4-nano  # Default
+OPENAI_MODEL=gpt-5-nano  # Default
 
 # RSS reader compatibility (optional)
 # If your reader hides items as duplicates (e.g. Inoreader duplicate filters),
@@ -121,9 +121,13 @@ find . -name '*.pyc' -delete && find . -name '__pycache__' -type d -exec rm -rf 
 - `https://tech.nikkeibp.co.jp/rss/xtech-it.rdf`
 - `https://b.hatena.ne.jp/hotentry/it.rss`
 
-## GPT-5.4-nanoへの移行
+## 既定モデルと比較
 
-### なぜGPT-5.4-nano？
+既定モデルは `gpt-5-nano` です。キュレーションの rubric、要約生成、タイトル補完、ハイブリッド順位づけ、バッチ処理はそのままに、API 使用量を抑える目的で戻しています。
+
+速度を優先したい場合は `OPENAI_MODEL=gpt-5.4-nano` に上書きできます。比較用の live benchmark は引き続き `scripts/benchmark_openai_models.py` で確認できます。
+
+### 参考比較: gpt-5-nano vs gpt-5.4-nano
 
 | 項目 | gpt-5-nano | gpt-5.4-nano | 評価 |
 |-----|------------|--------------|------|
@@ -181,10 +185,10 @@ find . -name '*.pyc' -delete && find . -name '__pycache__' -type d -exec rm -rf 
 ### 実測データ（12記事 live benchmark）
 
 ```
-モデル: gpt-5.4-nano
-処理時間: 10.81秒
+モデル: gpt-5-nano
+処理時間: 18.15秒
 API呼び出し: 1回（BATCH_SIZE=20）
-1記事あたり: 0.90秒
+1記事あたり: 1.51秒
 成功率: 100%（12/12）
 fallback率: 0%
 ```
@@ -193,9 +197,9 @@ fallback率: 0%
 
 ```
 Input tokens: 3175
-Output tokens: 2121
+Output tokens: 2414
 Reasoning tokens: 0
-合計: $0.003286/12記事（約$0.000274/記事）
+合計: $0.001124/12記事（約$0.000094/記事）
 ```
 
 ## テスト
