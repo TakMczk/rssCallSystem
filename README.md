@@ -235,7 +235,10 @@ npm run build:pages
 ### 注意事項
 
 - **`web/` を変更した場合**は、push 前に必ず `cd web && npm run build:pages` を実行してください
-- `main` / `docs` 配信なので、**生成済みの `docs/index.html` と `docs/assets/**` もコミット対象**です
+- GitHub Pages は GitHub Actions 配信を使用します。Settings > Pages > Build and deployment で Source が **GitHub Actions** になっていることを確認してください
+- 生成済みの `docs/index.html` と `docs/assets/**` は GitHub Actions の Pages artifact に含まれるため、UI 変更時はコミット対象です
+- CLI 確認: `gh api repos/TakMczk/rssCallSystem/pages --jq '{build_type, source}'`
+- CLI 更新: `gh api -X PUT repos/TakMczk/rssCallSystem/pages -f build_type=workflow`
 - 定期 GitHub Actions は RSS / JSON 更新が主目的で、**フロントエンドの再ビルド前提ではありません**
 - Python 側だけを変更した場合は、通常どおり `python -m src.main` による `docs/rss.xml` / `docs/data.json` 更新で運用できます
 

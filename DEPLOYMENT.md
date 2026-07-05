@@ -33,25 +33,31 @@ gh variable set SITE_BASE_URL -R "$REPO" --body "https://<your-account>.github.i
 
 Settings > Pages:
 
-1. Build and deployment: Source = "Deploy from a branch"
-2. Branch = `main` / `/docs`
-3. 保存
-4. 発行 URL が表示される (数分かかる)
+1. Build and deployment: Source = "GitHub Actions"
+2. 保存
+3. 発行 URL が表示される (数分かかる)
 
-CLI (Pages 未構成時):
+CLI での確認:
 
+```bash
+gh api repos/TakMczk/rssCallSystem/pages --jq '{build_type, source}'
 ```
-gh api -X POST repos/:owner/:repo/pages \
-  -f source[branch]=main -f source[path]=/docs || \
-  echo "Pages 既に設定済みか確認"
+
+`build_type` が `workflow` ではない場合は、GitHub Actions 配信へ更新します。
+
+```bash
+gh api -X PUT repos/TakMczk/rssCallSystem/pages -f build_type=workflow
 ```
 
 ### 4. 初回動作確認
 
-1. 手動ワークフロー起動: Actions > Update Curated RSS > Run workflow
-2. 実行成功後 commit 差分に `docs/rss.xml` と `docs/data.json` の更新が含まれる
-3. 公開 URL `https://<your-account>.github.io/rssCallSystem/rss.xml` にアクセスし XML が取得できる
-4. 公開トップ `https://<your-account>.github.io/rssCallSystem/` にアクセスし、カード UI が表示される
+1. 手動ワークフロー起動: Actions > Deploy GitHub Pages > Run workflow
+2. deploy job が成功することを確認
+3. 手動ワークフロー起動: Actions > Update Curated RSS > Run workflow
+4. 実行成功後 commit 差分に `docs/rss.xml` と `docs/data.json` の更新が含まれる
+5. `Update Curated RSS` 完了後、`Deploy GitHub Pages` が `workflow_run` 経由で成功することを確認
+6. 公開 URL `https://<your-account>.github.io/rssCallSystem/rss.xml` にアクセスし XML が取得できる
+7. 公開トップ `https://<your-account>.github.io/rssCallSystem/` にアクセスし、カード UI が表示される
 
 ### 5. cron スケジュール
 
